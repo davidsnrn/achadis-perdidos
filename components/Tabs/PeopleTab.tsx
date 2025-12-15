@@ -319,13 +319,14 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate }) => {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         {activeTab === 'manual' ? (
           <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
+             {/* ORDEM ALTERADA: Matrícula -> Nome -> Vínculo */}
+             <div className="w-full md:w-48">
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Matrícula</label>
+              <input required value={matricula} onChange={e => setMatricula(e.target.value)} className="w-full border rounded-lg p-2.5 text-sm" placeholder="202..." />
+            </div>
             <div className="flex-1 w-full">
               <label className="block text-xs font-semibold text-gray-500 mb-1">Nome Completo</label>
               <input required value={name} onChange={e => setName(e.target.value)} className="w-full border rounded-lg p-2.5 text-sm" placeholder="Nome..." />
-            </div>
-            <div className="w-full md:w-48">
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Matrícula</label>
-              <input required value={matricula} onChange={e => setMatricula(e.target.value)} className="w-full border rounded-lg p-2.5 text-sm" placeholder="202..." />
             </div>
             <div className="w-full md:w-40">
               <label className="block text-xs font-semibold text-gray-500 mb-1">Vínculo</label>

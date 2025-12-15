@@ -205,11 +205,12 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) =
                   <td className="p-3 font-medium text-gray-800">{report.itemDescription}</td>
                   <td className="p-3 text-gray-600">{report.personName}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 ${
                       report.status === ReportStatus.OPEN ? 'bg-yellow-100 text-yellow-800' :
                       report.status === ReportStatus.FOUND ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800'
+                      'bg-green-100 text-green-800 border border-green-200 shadow-sm'
                     }`}>
+                      {report.status === ReportStatus.RESOLVED && <CheckCircle size={12} />}
                       {report.status}
                     </span>
                   </td>

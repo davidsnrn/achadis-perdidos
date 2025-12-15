@@ -39,21 +39,29 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Helper: Remove accents and lower case for search
+  const normalizeText = (text: string) => {
+    return text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  };
+
   // Derived state for filtered items
   const filteredItems = useMemo(() => {
     return items.filter(item => {
       const matchesStatus = item.status === activeSubTab;
       
-      const searchTerms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+      const searchTerms = normalizeText(searchTerm).split(/\s+/).filter(t => t.length > 0);
       let matchesSearch = true;
       if (searchTerms.length > 0) {
-        const itemSearchableText = `
+        const itemSearchableText = normalizeText(`
           ${item.id} 
           ${item.description} 
           ${item.detailedDescription || ''} 
           ${item.locationFound} 
           ${item.locationStored}
-        `.toLowerCase();
+        `);
         
         matchesSearch = searchTerms.every(term => itemSearchableText.includes(term));
       }
@@ -81,13 +89,17 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
     });
   }, [items, activeSubTab, searchTerm, dateFilter, startDate, endDate]);
 
-  // Autocomplete Filter for People
+  // Autocomplete Filter for People (Enhanced Search)
   const filteredPeople = useMemo(() => {
-    if (personSearch.length < 2) return [];
-    return people.filter(p => 
-      p.name.toLowerCase().includes(personSearch.toLowerCase()) || 
-      p.matricula.includes(personSearch)
-    ).slice(0, 5); // Limit to 5 suggestions
+    if (!personSearch.trim()) return [];
+    
+    const searchTerms = normalizeText(personSearch).split(/\s+/).filter(t => t.length > 0);
+
+    return people.filter(p => {
+      const personText = normalizeText(`${p.name} ${p.matricula}`);
+      // Verifica se TODOS os termos digitados estão presentes no texto da pessoa (Nome ou Matrícula)
+      return searchTerms.every(term => personText.includes(term));
+    }).slice(0, 5); // Limit to 5 suggestions
   }, [people, personSearch]);
 
   // Open Reports Filter
@@ -521,7 +533,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
                   type="text" 
                   value={personSearch}
                   onChange={(e) => { setPersonSearch(e.target.value); setSelectedPerson(null); }}
-                  placeholder="Digite o nome ou matrícula..."
+                  placeholder="Digite o nome ou parte da matrícula..."
                   className="w-full border rounded-lg p-2.5 pl-10 text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
                 />
                 <Search className="absolute left-3 top-3 text-gray-400" size={16} />
