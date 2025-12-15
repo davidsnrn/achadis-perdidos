@@ -1,21 +1,37 @@
 import React, { useState, useMemo } from 'react';
-import { FoundItem, ItemStatus } from '../../types';
+import { FoundItem, ItemStatus, Person, LostReport, ReportStatus } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Plus, Search, Trash2, Gift, Calendar, Pencil, CheckCircle } from 'lucide-react';
+import { Plus, Search, Trash2, Gift, Calendar, Pencil, Info, History, CornerUpRight, ChevronUp, RotateCcw, User, FileText, CheckCircle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
   items: FoundItem[];
+  people: Person[]; // Lista de Pessoas para selecionar na devolução
+  reports: LostReport[]; // Lista de Relatos para vincular
   onUpdate: () => void;
 }
 
 type DateFilterType = 'ALL' | 'TODAY' | 'WEEK' | 'CUSTOM';
 
-export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
+export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdate }) => {
   const [activeSubTab, setActiveSubTab] = useState<ItemStatus>(ItemStatus.AVAILABLE);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  
+  // Modals State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  
+  // Return Modal State
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [itemToReturn, setItemToReturn] = useState<FoundItem | null>(null);
+  const [returnType, setReturnType] = useState<'PERSON' | 'REPORT'>('PERSON');
+  
+  const [personSearch, setPersonSearch] = useState('');
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [selectedReport, setSelectedReport] = useState<LostReport | null>(null);
+  
   const [editingItem, setEditingItem] = useState<FoundItem | null>(null);
+  const [viewingItem, setViewingItem] = useState<FoundItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
   
   // Date Filtering State
@@ -26,21 +42,25 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
   // Derived state for filtered items
   const filteredItems = useMemo(() => {
     return items.filter(item => {
-      // 1. Status Filter
       const matchesStatus = item.status === activeSubTab;
       
-      // 2. Text Search (Description, Detailed, Location, ID)
-      const term = searchTerm.toLowerCase();
-      const matchesSearch = 
-        item.description.toLowerCase().includes(term) ||
-        (item.detailedDescription && item.detailedDescription.toLowerCase().includes(term)) ||
-        item.locationFound.toLowerCase().includes(term) ||
-        item.id.toString().includes(term);
+      const searchTerms = searchTerm.toLowerCase().trim().split(/\s+/).filter(t => t.length > 0);
+      let matchesSearch = true;
+      if (searchTerms.length > 0) {
+        const itemSearchableText = `
+          ${item.id} 
+          ${item.description} 
+          ${item.detailedDescription || ''} 
+          ${item.locationFound} 
+          ${item.locationStored}
+        `.toLowerCase();
+        
+        matchesSearch = searchTerms.every(term => itemSearchableText.includes(term));
+      }
 
-      // 3. Date Filter
       let matchesDate = true;
       if (dateFilter !== 'ALL') {
-        const itemDate = new Date(item.dateFound + 'T12:00:00'); // Ensure it's treated as local date roughly
+        const itemDate = new Date(item.dateFound + 'T12:00:00');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -49,7 +69,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
         } else if (dateFilter === 'WEEK') {
           const oneWeekAgo = new Date(today);
           oneWeekAgo.setDate(today.getDate() - 7);
-          matchesDate = itemDate >= oneWeekAgo && itemDate <= new Date(); // Up to now
+          matchesDate = itemDate >= oneWeekAgo && itemDate <= new Date();
         } else if (dateFilter === 'CUSTOM' && startDate && endDate) {
           const start = new Date(startDate + 'T00:00:00');
           const end = new Date(endDate + 'T23:59:59');
@@ -61,29 +81,51 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
     });
   }, [items, activeSubTab, searchTerm, dateFilter, startDate, endDate]);
 
-  // Helper to calculate days in stock
+  // Autocomplete Filter for People
+  const filteredPeople = useMemo(() => {
+    if (personSearch.length < 2) return [];
+    return people.filter(p => 
+      p.name.toLowerCase().includes(personSearch.toLowerCase()) || 
+      p.matricula.includes(personSearch)
+    ).slice(0, 5); // Limit to 5 suggestions
+  }, [people, personSearch]);
+
+  // Open Reports Filter
+  const openReports = useMemo(() => {
+    return reports.filter(r => r.status === ReportStatus.OPEN);
+  }, [reports]);
+
   const getDaysInStock = (dateString: string) => {
     const foundDate = new Date(dateString + 'T12:00:00');
     const today = new Date();
-    // Normalize to start of day for accurate day diff
     foundDate.setHours(0,0,0,0);
     today.setHours(0,0,0,0);
     
     const diffTime = Math.abs(today.getTime() - foundDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
     
-    if (diffDays === 0) return <span className="text-green-600 font-bold">Hoje</span>;
+    if (diffDays === 0) return <span className="text-red-600 font-bold">Hoje</span>;
     if (diffDays === 1) return <span className="text-gray-700">Ontem</span>;
     return <span className="text-gray-700">Há {diffDays} dias</span>;
+  };
+
+  const getStatusColorClass = (status: ItemStatus) => {
+    switch (status) {
+      case ItemStatus.AVAILABLE: return 'bg-green-100 text-green-800 border-green-200';
+      case ItemStatus.RETURNED: return 'bg-blue-100 text-blue-800 border-blue-200';
+      case ItemStatus.DISCARDED: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-gray-50 text-gray-800';
+    }
   };
 
   // Handlers
   const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+    const isNew = !editingItem || editingItem.id === 0;
+
     const newItem: FoundItem = {
-      id: editingItem ? editingItem.id : 0, // 0 will trigger auto-increment in service
+      id: editingItem ? editingItem.id : 0,
       description: formData.get('description') as string,
       detailedDescription: formData.get('detailedDescription') as string,
       locationFound: formData.get('locationFound') as string,
@@ -93,29 +135,87 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
       status: editingItem ? editingItem.status : ItemStatus.AVAILABLE,
     };
 
-    StorageService.saveItem(newItem);
+    StorageService.saveItem(newItem, isNew ? 'Novo item cadastrado.' : 'Detalhes do item editados.');
     onUpdate();
-    setShowModal(false);
+    setShowEditModal(false);
     setEditingItem(null);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
     if (confirm('Tem certeza que deseja excluir este item?')) {
       StorageService.deleteItem(id);
       onUpdate();
     }
   };
 
-  const handleReturn = (item: FoundItem) => {
-    const receiver = prompt('Para quem o item está sendo devolvido? (Nome ou Matrícula)');
-    if (receiver) {
+  // Start Return Process
+  const handleOpenReturnModal = (e: React.MouseEvent, item: FoundItem) => {
+    e.stopPropagation();
+    setItemToReturn(item);
+    setShowReturnModal(true);
+    // Reset states
+    setPersonSearch('');
+    setSelectedPerson(null);
+    setSelectedReport(null);
+    setReturnType('PERSON');
+  };
+
+  // Confirm Return
+  const handleConfirmReturn = () => {
+    if (!itemToReturn) return;
+
+    let receiverName = '';
+    let logMessage = '';
+
+    if (returnType === 'PERSON') {
+      if (!selectedPerson) {
+        alert("Selecione uma pessoa.");
+        return;
+      }
+      receiverName = selectedPerson.name;
+      logMessage = `Item devolvido para: ${selectedPerson.name} (${selectedPerson.matricula})`;
+    } else {
+      if (!selectedReport) {
+        alert("Selecione um relato.");
+        return;
+      }
+      receiverName = selectedReport.personName;
+      logMessage = `Item vinculado ao Relato de Perda de ${selectedReport.personName}. Status do relato atualizado.`;
+      
+      // Update Report Status
+      const updatedReport: LostReport = {
+        ...selectedReport,
+        status: ReportStatus.RESOLVED,
+        history: [...selectedReport.history, { date: new Date().toISOString(), note: `Item encontrado (ID: ${itemToReturn.id}) e devolvido.` }]
+      };
+      StorageService.saveReport(updatedReport);
+    }
+
+    const updatedItem = {
+      ...itemToReturn,
+      status: ItemStatus.RETURNED,
+      returnedTo: receiverName,
+      returnedDate: new Date().toISOString()
+    };
+    
+    StorageService.saveItem(updatedItem, logMessage);
+    
+    onUpdate();
+    setShowReturnModal(false);
+    setItemToReturn(null);
+  };
+
+  const handleCancelReturn = (e: React.MouseEvent, item: FoundItem) => {
+    e.stopPropagation();
+    if (confirm('Deseja cancelar a devolução e marcar o item como Disponível novamente?')) {
       const updated = {
         ...item,
-        status: ItemStatus.RETURNED,
-        returnedTo: receiver,
-        returnedDate: new Date().toISOString()
+        status: ItemStatus.AVAILABLE,
+        returnedTo: undefined,
+        returnedDate: undefined
       };
-      StorageService.saveItem(updated);
+      StorageService.saveItem(updated, 'Devolução cancelada. Item retornou para Disponível.');
       onUpdate();
     }
   };
@@ -125,7 +225,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
       selectedItems.forEach(id => {
         const item = items.find(i => i.id === id);
         if (item) {
-          StorageService.saveItem({ ...item, status: ItemStatus.DISCARDED });
+          StorageService.saveItem({ ...item, status: ItemStatus.DISCARDED }, 'Item marcado como Doado/Descartado em lote.');
         }
       });
       setSelectedItems([]);
@@ -135,6 +235,17 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
 
   const toggleSelection = (id: number) => {
     setSelectedItems(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const openDetails = (item: FoundItem) => {
+    setViewingItem(item);
+    setShowDetailModal(true);
+  };
+
+  const formatDate = (isoString: string) => {
+    if (!isoString) return '-';
+    const [year, month, day] = isoString.split('-');
+    return `${day}/${month}/${year}`;
   };
 
   return (
@@ -167,7 +278,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
             </button>
           )}
           <button 
-            onClick={() => { setEditingItem(null); setShowModal(true); }}
+            onClick={() => { setEditingItem(null); setShowEditModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen transition-colors text-sm w-full md:w-auto justify-center"
           >
             <Plus size={18} /> Novo Item
@@ -177,19 +288,17 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
 
       {/* Filters Area */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
-        {/* Text Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Buscar por ID, descrição (simples/detalhada) ou local..."
+            placeholder="Buscar por ID, descrição ou palavras-chave..."
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-ifrn-green focus:border-transparent outline-none text-sm"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
 
-        {/* Date Filter Controls */}
         <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
           <Calendar size={16} className="text-gray-500 ml-2" />
           <select 
@@ -227,7 +336,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-600">
-            <thead className="bg-gray-50 text-gray-700 font-semibold uppercase text-xs">
+            <thead className="bg-gray-50/50 text-gray-500 font-bold uppercase text-[11px] tracking-wider">
               <tr>
                 {activeSubTab === ItemStatus.AVAILABLE && (
                   <th className="p-4 w-4">
@@ -241,10 +350,15 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
                     />
                   </th>
                 )}
-                <th className="p-4">ID</th>
+                <th className="p-4">
+                  <div className="flex items-center gap-1 cursor-pointer hover:text-gray-700">
+                    ID <ChevronUp size={14} />
+                  </div>
+                </th>
                 <th className="p-4">Descrição</th>
-                <th className="p-4">Local Achado</th>
+                <th className="p-4">Local Encontrado</th>
                 <th className="p-4">Guardado Em</th>
+                <th className="p-4">Data</th>
                 <th className="p-4">Tempo no Estoque</th>
                 <th className="p-4 text-center">Ações</th>
               </tr>
@@ -252,13 +366,17 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
             <tbody className="divide-y divide-gray-100">
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-gray-400">Nenhum item encontrado com os filtros atuais.</td>
+                  <td colSpan={8} className="p-8 text-center text-gray-400">Nenhum item encontrado com os filtros atuais.</td>
                 </tr>
               ) : (
                 filteredItems.map(item => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={item.id} 
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => openDetails(item)}
+                  >
                      {activeSubTab === ItemStatus.AVAILABLE && (
-                      <td className="p-4">
+                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
                         <input 
                           type="checkbox" 
                           checked={selectedItems.includes(item.id)}
@@ -266,46 +384,63 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
                         />
                       </td>
                     )}
-                    <td className="p-4 font-mono font-bold text-ifrn-darkGreen">#{item.id}</td>
+                    <td className="p-4 font-bold text-ifrn-green">{item.id}</td>
                     <td className="p-4">
-                      <div className="font-medium text-gray-900">{item.description}</div>
+                      <div className="font-medium text-gray-900 group flex items-center gap-2">
+                        {item.description}
+                        <Info size={14} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                       {item.detailedDescription && (
                         <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">{item.detailedDescription}</div>
                       )}
                     </td>
-                    <td className="p-4">{item.locationFound}</td>
-                    <td className="p-4">{item.locationStored}</td>
-                    <td className="p-4">
-                      <div className="flex flex-col">
-                        {getDaysInStock(item.dateFound)}
-                        <span className="text-[10px] text-gray-400">{new Date(item.dateFound).toLocaleDateString()}</span>
-                      </div>
+                    <td className="p-4 text-gray-700">{item.locationFound}</td>
+                    <td className="p-4 font-medium text-gray-800">{item.locationStored}</td>
+                    <td className="p-4 text-gray-600">{formatDate(item.dateFound)}</td>
+                    <td className="p-4 font-medium">
+                      {getDaysInStock(item.dateFound)}
                     </td>
                     <td className="p-4">
                       <div className="flex justify-center gap-2">
                         {item.status === ItemStatus.AVAILABLE && (
+                          <>
+                            <button 
+                              onClick={(e) => handleOpenReturnModal(e, item)}
+                              title="Devolver / Dar Saída"
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            >
+                              <CornerUpRight size={18} />
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setEditingItem(item); setShowEditModal(true); }}
+                              title="Editar"
+                              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                            <button 
+                              onClick={(e) => handleDelete(e, item.id)}
+                              title="Excluir"
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
+
+                        {item.status === ItemStatus.RETURNED && (
                           <button 
-                            onClick={() => handleReturn(item)}
-                            title="Devolver"
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            onClick={(e) => handleCancelReturn(e, item)}
+                            title="Cancelar Devolução (Estornar)"
+                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md transition-colors flex items-center gap-1 text-xs font-medium px-2"
                           >
-                            <CheckCircle size={18} />
+                            <RotateCcw size={14} /> Cancelar Devolução
                           </button>
                         )}
-                        <button 
-                          onClick={() => { setEditingItem(item); setShowModal(true); }}
-                          title="Editar"
-                          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(item.id)}
-                          title="Excluir"
-                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+
+                         {item.status === ItemStatus.DISCARDED && (
+                           <span className="text-xs text-gray-400 italic">Arquivado</span>
+                         )}
                       </div>
                     </td>
                   </tr>
@@ -316,9 +451,10 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
         </div>
       </div>
 
+      {/* MODAL: Edit/Create */}
       <Modal 
-        isOpen={showModal} 
-        onClose={() => setShowModal(false)}
+        isOpen={showEditModal} 
+        onClose={() => setShowEditModal(false)}
         title={editingItem ? `Editar Item #${editingItem.id}` : 'Cadastrar Novo Item'}
       >
         <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -343,10 +479,209 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
             <input name="locationStored" required defaultValue={editingItem?.locationStored} className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-ifrn-green outline-none" placeholder="Ex: Armário 1" />
           </div>
           <div className="col-span-2 pt-4 flex justify-end gap-3">
-            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+            <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
             <button type="submit" className="px-6 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen font-medium">Salvar</button>
           </div>
         </form>
+      </Modal>
+
+      {/* MODAL: Return Item */}
+      <Modal
+        isOpen={showReturnModal}
+        onClose={() => setShowReturnModal(false)}
+        title="Realizar Devolução do Item"
+      >
+        <div className="space-y-6">
+          <p className="text-sm text-gray-600">
+            Você está devolvendo o item: <strong>{itemToReturn?.description}</strong>
+          </p>
+
+          {/* Toggle Type */}
+          <div className="flex gap-4 p-1 bg-gray-100 rounded-lg">
+             <button 
+                onClick={() => setReturnType('PERSON')}
+                className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 ${returnType === 'PERSON' ? 'bg-white shadow-sm text-ifrn-darkGreen' : 'text-gray-500'}`}
+             >
+                <User size={16} /> Selecionar Pessoa
+             </button>
+             <button 
+                onClick={() => setReturnType('REPORT')}
+                className={`flex-1 py-2 text-sm font-medium rounded-md flex items-center justify-center gap-2 ${returnType === 'REPORT' ? 'bg-white shadow-sm text-ifrn-darkGreen' : 'text-gray-500'}`}
+             >
+                <FileText size={16} /> Vincular a Relato
+             </button>
+          </div>
+
+          {/* Option A: Select Person */}
+          {returnType === 'PERSON' && (
+            <div className="relative space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase">Buscar Pessoa Cadastrada</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={personSearch}
+                  onChange={(e) => { setPersonSearch(e.target.value); setSelectedPerson(null); }}
+                  placeholder="Digite o nome ou matrícula..."
+                  className="w-full border rounded-lg p-2.5 pl-10 text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
+                />
+                <Search className="absolute left-3 top-3 text-gray-400" size={16} />
+              </div>
+
+              {selectedPerson ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-full text-green-700">
+                    <User size={20} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-green-900 text-sm">{selectedPerson.name}</p>
+                    <p className="text-xs text-green-700">{selectedPerson.matricula} • {selectedPerson.type}</p>
+                  </div>
+                  <CheckCircle size={20} className="text-green-600 ml-auto" />
+                </div>
+              ) : (
+                filteredPeople.length > 0 && (
+                  <div className="border rounded-lg max-h-40 overflow-y-auto divide-y divide-gray-100 absolute w-full bg-white z-10 shadow-lg">
+                    {filteredPeople.map(p => (
+                      <div 
+                        key={p.id} 
+                        onClick={() => { setSelectedPerson(p); setPersonSearch(p.name); }}
+                        className="p-3 hover:bg-gray-50 cursor-pointer"
+                      >
+                         <p className="text-sm font-medium text-gray-800">{p.name}</p>
+                         <p className="text-xs text-gray-500">{p.matricula}</p>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Option B: Select Report */}
+          {returnType === 'REPORT' && (
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase">Selecionar Relato de Perda (Aberto)</label>
+              {openReports.length === 0 ? (
+                <p className="text-sm text-gray-400 italic p-3 border rounded bg-gray-50">Não há relatos de perda em aberto.</p>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {openReports.map(report => (
+                    <div 
+                      key={report.id}
+                      onClick={() => setSelectedReport(report)}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${selectedReport?.id === report.id ? 'border-ifrn-green bg-green-50 ring-1 ring-ifrn-green' : 'border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      <div className="flex justify-between items-start">
+                         <div>
+                            <p className="font-bold text-sm text-gray-800">{report.itemDescription}</p>
+                            <p className="text-xs text-gray-500">Relatado por: <strong>{report.personName}</strong></p>
+                            <p className="text-xs text-gray-400 mt-1">{new Date(report.createdAt).toLocaleDateString()}</p>
+                         </div>
+                         {selectedReport?.id === report.id && <CheckCircle size={18} className="text-ifrn-green" />}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="pt-4 flex justify-end gap-3 border-t">
+            <button 
+              onClick={() => setShowReturnModal(false)}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={handleConfirmReturn}
+              className="px-6 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen font-medium text-sm flex items-center gap-2"
+            >
+              <CornerUpRight size={16} /> Confirmar Devolução
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL: View Details */}
+      <Modal 
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        title="Detalhes do Objeto"
+      >
+        {viewingItem && (
+          <div className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 grid grid-cols-2 gap-4 text-sm">
+              <div className="col-span-2">
+                 <span className="text-xs font-bold text-gray-400 uppercase">Descrição</span>
+                 <p className="text-lg font-bold text-gray-800">{viewingItem.description}</p>
+                 <p className="text-gray-600 mt-1">{viewingItem.detailedDescription || "Sem detalhes adicionais."}</p>
+              </div>
+              <div>
+                 <span className="text-xs font-bold text-gray-400 uppercase">ID</span>
+                 <p className="font-mono text-ifrn-darkGreen font-bold">#{viewingItem.id}</p>
+              </div>
+              <div>
+                 <span className="text-xs font-bold text-gray-400 uppercase">Status</span>
+                 <p>
+                   <span className={`border px-2 py-0.5 rounded text-xs font-bold ${getStatusColorClass(viewingItem.status)}`}>
+                     {viewingItem.status}
+                   </span>
+                 </p>
+              </div>
+              <div>
+                 <span className="text-xs font-bold text-gray-400 uppercase">Local Achado</span>
+                 <p>{viewingItem.locationFound}</p>
+              </div>
+              <div>
+                 <span className="text-xs font-bold text-gray-400 uppercase">Guardado Em</span>
+                 <p>{viewingItem.locationStored}</p>
+              </div>
+              {viewingItem.returnedTo && (
+                <div className="col-span-2 bg-green-50 p-2 rounded border border-green-100">
+                  <span className="text-xs font-bold text-green-700 uppercase">Devolvido Para</span>
+                  <p className="text-green-900 font-medium">{viewingItem.returnedTo}</p>
+                  <p className="text-xs text-green-700">{new Date(viewingItem.returnedDate!).toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h4 className="flex items-center gap-2 font-bold text-gray-700 mb-3 border-b pb-2">
+                <History size={18} /> Histórico do Objeto
+              </h4>
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                {viewingItem.history && viewingItem.history.length > 0 ? (
+                  viewingItem.history.slice().reverse().map((log, index) => (
+                    <div key={index} className="flex gap-3 text-sm">
+                      <div className="flex flex-col items-center">
+                         <div className="w-2 h-2 rounded-full bg-gray-300 mt-1.5"></div>
+                         {index !== viewingItem.history!.length - 1 && <div className="w-px h-full bg-gray-200 my-1"></div>}
+                      </div>
+                      <div>
+                        <p className="text-gray-800">{log.action}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(log.date).toLocaleString()} • Por: {log.user || 'Sistema'}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Nenhum histórico registrado para este item.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button 
+                onClick={() => setShowDetailModal(false)}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -38,6 +38,12 @@ export interface Person {
   type: PersonType;
 }
 
+export interface ItemHistory {
+  date: string;
+  action: string;
+  user?: string; // Quem realizou a ação
+}
+
 export interface FoundItem {
   id: number; // Sequential ID
   description: string;
@@ -49,6 +55,7 @@ export interface FoundItem {
   status: ItemStatus;
   returnedTo?: string; // Person ID or Name
   returnedDate?: string;
+  history?: ItemHistory[]; // Log de auditoria do objeto
 }
 
 export interface LostReport {

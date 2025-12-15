@@ -8,7 +8,7 @@ const INITIAL_USERS: User[] = [
 
 const INITIAL_ITEMS: FoundItem[] = [
   {
-    id: 1001,
+    id: 1,
     description: 'Garrafa Azul',
     detailedDescription: 'Garrafa térmica marca Contigo, azul marinho, amassada na base.',
     locationFound: 'Auditório',
@@ -16,17 +16,24 @@ const INITIAL_ITEMS: FoundItem[] = [
     dateFound: new Date().toISOString().split('T')[0],
     dateRegistered: new Date().toISOString(),
     status: ItemStatus.AVAILABLE,
+    history: [
+      { date: new Date().toISOString(), action: 'Item registrado no sistema.', user: 'admin' }
+    ]
   },
   {
-    id: 1000,
+    id: 2,
     description: 'Caderno Capa Dura',
-    locationFound: 'Sala 23',
-    locationStored: 'Caixa de Papéis',
+    locationFound: 'Sala 60',
+    locationStored: 'Sala AP',
     dateFound: new Date(Date.now() - 86400000 * 5).toISOString().split('T')[0],
     dateRegistered: new Date(Date.now() - 86400000 * 5).toISOString(),
     status: ItemStatus.RETURNED,
     returnedTo: 'João Silva',
     returnedDate: new Date().toISOString(),
+    history: [
+      { date: new Date(Date.now() - 86400000 * 5).toISOString(), action: 'Item registrado.', user: 'op1' },
+      { date: new Date().toISOString(), action: 'Item devolvido para João Silva.', user: 'admin' }
+    ]
   }
 ];
 
@@ -76,17 +83,39 @@ export const StorageService = {
     }
     setStorage('users', users);
   },
+  deleteUser: (id: string) => {
+    const users = StorageService.getUsers().filter(u => u.id !== id);
+    setStorage('users', users);
+  },
   
   // People
   getPeople: (): Person[] => getStorage('people', INITIAL_PEOPLE),
   savePerson: (person: Person) => {
     const people = StorageService.getPeople();
+    
+    // Check for duplicate matricula on OTHER people
     if (people.some(p => p.matricula === person.matricula && p.id !== person.id)) {
-      throw new Error("Matrícula já cadastrada.");
+      throw new Error("Matrícula já cadastrada para outra pessoa.");
     }
-    const list = [...people, person];
-    setStorage('people', list);
-    return list;
+
+    const existingIndex = people.findIndex(p => p.id === person.id);
+    let newList;
+    
+    if (existingIndex >= 0) {
+      // Update
+      people[existingIndex] = person;
+      newList = [...people];
+    } else {
+      // Create
+      newList = [...people, person];
+    }
+    
+    setStorage('people', newList);
+    return newList;
+  },
+  deletePerson: (id: string) => {
+    const people = StorageService.getPeople().filter(p => p.id !== id);
+    setStorage('people', people);
   },
   importPeople: (people: Person[]) => {
     const current = StorageService.getPeople();
@@ -97,16 +126,27 @@ export const StorageService = {
 
   // Items
   getItems: (): FoundItem[] => getStorage('items', INITIAL_ITEMS),
-  saveItem: (item: FoundItem) => {
+  saveItem: (item: FoundItem, actionDescription?: string) => {
     const items = StorageService.getItems();
     const exists = items.find(i => i.id === item.id);
+    
+    // Create history entry
+    const newHistoryEntry = {
+      date: new Date().toISOString(),
+      action: actionDescription || (exists ? 'Item atualizado.' : 'Item registrado.'),
+      user: 'Sistema' // Em um app real, pegaríamos o usuário logado
+    };
+
     if (exists) {
+      // Preserve existing history and add new entry
+      item.history = [...(exists.history || []), newHistoryEntry];
       const updated = items.map(i => i.id === item.id ? item : i);
       setStorage('items', updated);
     } else {
       // Generate ID if new (simple max + 1)
-      const maxId = items.reduce((max, i) => Math.max(max, i.id), 999);
+      const maxId = items.reduce((max, i) => Math.max(max, i.id), 0);
       item.id = maxId + 1;
+      item.history = [newHistoryEntry];
       setStorage('items', [item, ...items]);
     }
   },

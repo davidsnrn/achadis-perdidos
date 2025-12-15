@@ -6,7 +6,7 @@ import { FoundItemsTab } from './components/Tabs/FoundItemsTab';
 import { LostReportsTab } from './components/Tabs/LostReportsTab';
 import { PeopleTab } from './components/Tabs/PeopleTab';
 import { UsersTab } from './components/Tabs/UsersTab';
-import { LogOut, Package, ClipboardList, Users, ShieldCheck, Github } from 'lucide-react';
+import { LogOut, Package, ClipboardList, Users, ShieldCheck, Zap } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -37,13 +37,23 @@ const App: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const loggedUser = StorageService.login(loginMat, loginPass);
+    attemptLogin(loginMat, loginPass);
+  };
+
+  const attemptLogin = (mat: string, pass: string) => {
+    const loggedUser = StorageService.login(mat, pass);
     if (loggedUser) {
       setUser(loggedUser);
       setLoginError('');
     } else {
       setLoginError('Credenciais inválidas. Tente novamente.');
     }
+  };
+
+  const handleDevLogin = () => {
+    setLoginMat('admin');
+    setLoginPass('admin');
+    attemptLogin('admin', 'admin');
   };
 
   const handleLogout = () => {
@@ -87,13 +97,26 @@ const App: React.FC = () => {
               {loginError && <p className="text-sm text-red-500 text-center">{loginError}</p>}
               <button 
                 type="submit" 
-                className="w-full bg-ifrn-red text-white font-bold py-3 rounded-lg hover:bg-red-700 transition-colors"
+                className="w-full bg-ifrn-green text-white font-bold py-3 rounded-lg hover:bg-ifrn-darkGreen transition-colors shadow-md"
               >
                 Entrar
               </button>
+              
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">Desenvolvimento</span>
+                <div className="flex-grow border-t border-gray-200"></div>
+              </div>
+              
+              <button 
+                type="button" 
+                onClick={handleDevLogin}
+                className="w-full bg-gray-100 text-gray-600 font-semibold py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex items-center justify-center gap-2"
+              >
+                <Zap size={16} /> Modo Dev (Login Rápido)
+              </button>
             </form>
             <div className="mt-6 text-center text-xs text-gray-400">
-              <p>Credenciais padrão para teste:</p>
               <p>Admin: admin / admin</p>
               <p>Padrão: op1 / 123</p>
             </div>
@@ -182,10 +205,17 @@ const App: React.FC = () => {
 
         {/* Tab Content */}
         <div className="min-h-[400px]">
-          {activeTab === 'achados' && <FoundItemsTab items={items} onUpdate={refreshData} />}
+          {activeTab === 'achados' && (
+            <FoundItemsTab 
+              items={items} 
+              people={people}
+              reports={reports}
+              onUpdate={refreshData} 
+            />
+          )}
           {activeTab === 'relatos' && <LostReportsTab reports={reports} people={people} onUpdate={refreshData} />}
           {activeTab === 'pessoas' && <PeopleTab people={people} onUpdate={refreshData} />}
-          {activeTab === 'usuarios' && <UsersTab users={users} />}
+          {activeTab === 'usuarios' && <UsersTab users={users} currentUser={user} onUpdate={refreshData} />}
         </div>
 
       </main>
@@ -193,18 +223,9 @@ const App: React.FC = () => {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-6">
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <p className="text-xs text-gray-400 mb-2">
+          <p className="text-xs text-gray-400">
             &copy; {new Date().getFullYear()} IFRN Campus Nova Cruz. COADES.
           </p>
-          <a 
-            href="https://github.com/davidsnrn/achados-perdidos" 
-            target="_blank" 
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-ifrn-green transition-colors font-medium"
-          >
-            <Github size={12} />
-            davidsnrn/achados-perdidos
-          </a>
         </div>
       </footer>
     </div>
