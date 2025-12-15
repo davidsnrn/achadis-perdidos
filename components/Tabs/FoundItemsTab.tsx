@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { FoundItem, ItemStatus } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Plus, Search, Trash2, RotateCcw, PackageCheck, Gift, Calendar, Filter } from 'lucide-react';
+import { Plus, Search, Trash2, Gift, Calendar, Pencil, CheckCircle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -289,7 +289,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
                             title="Devolver"
                             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                           >
-                            <PackageCheck size={18} />
+                            <CheckCircle size={18} />
                           </button>
                         )}
                         <button 
@@ -297,7 +297,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, onUpdate }) => {
                           title="Editar"
                           className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
                         >
-                          <Search size={18} />
+                          <Pencil size={18} />
                         </button>
                         <button 
                           onClick={() => handleDelete(item.id)}

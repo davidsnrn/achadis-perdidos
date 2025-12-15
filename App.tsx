@@ -6,7 +6,7 @@ import { FoundItemsTab } from './components/Tabs/FoundItemsTab';
 import { LostReportsTab } from './components/Tabs/LostReportsTab';
 import { PeopleTab } from './components/Tabs/PeopleTab';
 import { UsersTab } from './components/Tabs/UsersTab';
-import { LogOut, Package, ClipboardList, Users, ShieldCheck } from 'lucide-react';
+import { LogOut, Package, ClipboardList, Users, ShieldCheck, Github } from 'lucide-react';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -193,9 +193,18 @@ const App: React.FC = () => {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-6">
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <p className="text-xs text-gray-400">
-            &copy; {new Date().getFullYear()} IFRN Campus Natal-Central. COADES.
+          <p className="text-xs text-gray-400 mb-2">
+            &copy; {new Date().getFullYear()} IFRN Campus Nova Cruz. COADES.
           </p>
+          <a 
+            href="https://github.com/davidsnrn/achados-perdidos" 
+            target="_blank" 
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-ifrn-green transition-colors font-medium"
+          >
+            <Github size={12} />
+            davidsnrn/achados-perdidos
+          </a>
         </div>
       </footer>
     </div>
