@@ -61,10 +61,10 @@ const App: React.FC = () => {
   }, [activeTab, user]);
 
   // Refresh Data Helper (Async) with Timeout
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
+    // Evita chamadas duplicadas se já estiver carregando ou se não houver usuário
     setLoading(true);
     try {
-      // Create a timeout promise that rejects after 10 seconds
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Tempo limite excedido")), 10000)
       );
@@ -76,7 +76,6 @@ const App: React.FC = () => {
         StorageService.getUsers()
       ]);
 
-      // Race between data fetch and timeout to prevent infinite loading
       const result = await Promise.race([dataPromise, timeout]);
       const [fetchedItems, fetchedReports, fetchedPeople, fetchedUsers] = result as [FoundItem[], LostReport[], Person[], User[]];
 
@@ -85,13 +84,11 @@ const App: React.FC = () => {
       setPeople(fetchedPeople);
       setUsers(fetchedUsers);
     } catch (e) {
-      console.error("Erro ao carregar dados", e);
-      // Optional: Show a subtle alert or toast, but avoid blocking UI flow too much
-      // If it's a timeout, it might be the Supabase key or network
+      console.error("Erro ao carregar dados:", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const loadSystemConfig = useCallback(async () => {
     const config = await StorageService.getConfig();
@@ -113,7 +110,7 @@ const App: React.FC = () => {
     setDesktopDeleteOpen(false);
   }, []);
 
-  // Initial Load
+  // 1. Initial System Load (Executa apenas uma vez ao montar)
   useEffect(() => {
     loadSystemConfig();
 
@@ -121,19 +118,30 @@ const App: React.FC = () => {
       const sessionUser = StorageService.getSessionUser();
       if (sessionUser) {
         if (StorageService.isSessionExpired()) {
-          handleLogout();
+          StorageService.clearSession();
+          setUser(null);
         } else {
           setUser(sessionUser);
-          await refreshData(); // Await data load
           StorageService.updateLastActive();
         }
       }
     };
     initSession();
+  }, [loadSystemConfig]); // Removido 'user' da dependência para evitar loop infinito
 
-    // Inactivity Timer
+  // 2. Data Fetching Effect (Executa quando 'user' muda/loga)
+  useEffect(() => {
+    if (user) {
+      refreshData();
+    }
+  }, [user, refreshData]);
+
+  // 3. Inactivity Timer Effect
+  useEffect(() => {
+    if (!user) return;
+
     const handleActivity = () => {
-       if (user) StorageService.updateLastActive();
+       StorageService.updateLastActive();
     };
 
     window.addEventListener('mousemove', handleActivity);
@@ -143,7 +151,7 @@ const App: React.FC = () => {
     window.addEventListener('touchstart', handleActivity);
 
     const intervalId = setInterval(() => {
-      if (user && StorageService.isSessionExpired()) {
+      if (StorageService.isSessionExpired()) {
         handleLogout();
         alert("Sua sessão expirou por inatividade (5 minutos).");
       }
@@ -157,7 +165,7 @@ const App: React.FC = () => {
       window.removeEventListener('touchstart', handleActivity);
       clearInterval(intervalId);
     };
-  }, [user, handleLogout, loadSystemConfig]);
+  }, [user, handleLogout]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +180,7 @@ const App: React.FC = () => {
         StorageService.setSessionUser(loggedUser);
         setUser(loggedUser);
         setLoginError('');
-        await refreshData();
+        // refreshData será chamado pelo useEffect [user]
       } else {
         setLoginError('Credenciais inválidas. Tente novamente.');
       }
