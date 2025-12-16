@@ -54,12 +54,15 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
       return;
     }
 
+    // Remove máscara antes de salvar (opcional, mas recomendado para consistência)
+    const cleanPhone = newWhatsapp.replace(/\D/g, '');
+
     const newReport: LostReport = {
       id: Math.random().toString(36).substr(2, 9),
       itemDescription: newItemDesc,
       personId: selectedPerson.id,
       personName: selectedPerson.name,
-      whatsapp: newWhatsapp,
+      whatsapp: cleanPhone, // Salva apenas números ou mantenha newWhatsapp se preferir salvar formatado
       email: newEmail,
       status: ReportStatus.OPEN,
       createdAt: new Date().toISOString(),
@@ -193,10 +196,25 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
                 <input 
                   type="text"
                   required
+                  maxLength={15}
                   className="w-full border rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-ifrn-green"
-                  placeholder="(84) 9..."
+                  placeholder="(99) 99999-9999"
                   value={newWhatsapp}
-                  onChange={e => setNewWhatsapp(e.target.value)}
+                  onChange={(e) => {
+                    let value = e.target.value.replace(/\D/g, "");
+                    if (value.length > 11) value = value.slice(0, 11);
+                    
+                    if (value.length > 10) {
+                      value = value.replace(/^(\d\d)(\d{5})(\d{4}).*/, "($1) $2-$3");
+                    } else if (value.length > 5) {
+                      value = value.replace(/^(\d\d)(\d{4})(\d{0,4}).*/, "($1) $2-$3");
+                    } else if (value.length > 2) {
+                      value = value.replace(/^(\d\d)(\d{0,5})/, "($1) $2");
+                    } else if (value.length > 0) {
+                      value = value.replace(/^(\d*)/, "($1");
+                    }
+                    setNewWhatsapp(value);
+                  }}
                 />
               </div>
               <div>
@@ -292,8 +310,9 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
               <div>
                 <span className="block text-gray-500 text-xs uppercase">Contato</span>
                 <div className="flex gap-2 mt-1">
-                   <a href={`https://wa.me/55${viewingReport.whatsapp}`} target="_blank" rel="noreferrer" className="text-green-600 hover:underline flex items-center gap-1">
-                     WhatsApp
+                   {/* Remove formatação para o link do WhatsApp (mantém apenas números) */}
+                   <a href={`https://wa.me/55${viewingReport.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-green-600 hover:underline flex items-center gap-1">
+                     WhatsApp ({viewingReport.whatsapp})
                    </a>
                    {viewingReport.email && <span className="text-gray-400">| {viewingReport.email}</span>}
                 </div>
