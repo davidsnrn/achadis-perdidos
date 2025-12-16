@@ -1,20 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import { LostReport, ReportStatus, Person, PersonType } from '../../types';
+import { LostReport, ReportStatus, Person, PersonType, User, UserLevel } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Search, Send, Clock, CheckCircle, User as UserIcon } from 'lucide-react';
+import { Search, Send, Clock, CheckCircle, User as UserIcon, Trash2, AlertTriangle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
   reports: LostReport[];
   people: Person[];
   onUpdate: () => void;
+  user: User;
 }
 
-export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) => {
+export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [personSearch, setPersonSearch] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [viewingReport, setViewingReport] = useState<LostReport | null>(null);
+  
+  // Delete Confirmation State
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Form states
   const [newItemDesc, setNewItemDesc] = useState('');
@@ -92,6 +96,14 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) =
     };
     StorageService.saveReport(updated);
     setViewingReport(updated);
+    onUpdate();
+  };
+
+  const confirmDelete = () => {
+    if (!viewingReport) return;
+    StorageService.deleteReport(viewingReport.id);
+    setShowDeleteConfirm(false);
+    setViewingReport(null);
     onUpdate();
   };
 
@@ -228,14 +240,17 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) =
                   <th className="p-3 whitespace-nowrap">Item</th>
                   <th className="p-3 whitespace-nowrap">Quem</th>
                   <th className="p-3 whitespace-nowrap">Status</th>
-                  <th className="p-3 whitespace-nowrap">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {reports
                   .filter(r => r.itemDescription.toLowerCase().includes(searchTerm.toLowerCase()) || r.personName.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map(report => (
-                  <tr key={report.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={report.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setViewingReport(report)}
+                  >
                     <td className="p-3 text-gray-500 whitespace-nowrap">{new Date(report.createdAt).toLocaleDateString()}</td>
                     <td className="p-3 font-medium text-gray-800 whitespace-nowrap">{report.itemDescription}</td>
                     <td className="p-3 text-gray-600 whitespace-nowrap">{report.personName}</td>
@@ -249,9 +264,6 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) =
                         {report.status}
                       </span>
                     </td>
-                    <td className="p-3 whitespace-nowrap">
-                      <button onClick={() => setViewingReport(report)} className="text-ifrn-green hover:underline font-medium">Ver</button>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -261,7 +273,7 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) =
       </div>
 
       {/* Detail Modal */}
-      <Modal isOpen={!!viewingReport} onClose={() => setViewingReport(null)} title="Detalhes do Relato">
+      <Modal isOpen={!!viewingReport && !showDeleteConfirm} onClose={() => setViewingReport(null)} title="Detalhes do Relato">
         {viewingReport && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -308,18 +320,72 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) =
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              {viewingReport.status !== ReportStatus.RESOLVED && (
+            <div className="flex justify-between items-center pt-4 border-t">
+              {/* Delete Button (Left) */}
+              {(user.level === UserLevel.ADMIN || user.level === UserLevel.ADVANCED) ? (
                 <button 
-                  onClick={() => changeStatus(ReportStatus.RESOLVED)}
-                  className="flex items-center gap-2 px-4 py-2 bg-ifrn-green text-white rounded-lg hover:bg-emerald-700"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
                 >
-                  <CheckCircle size={16} /> Marcar como Resolvido
+                  <Trash2 size={16} /> Excluir
                 </button>
+              ) : (
+                <div></div> // Spacer if no permission
               )}
+
+              {/* Action Buttons (Right) */}
+              <div className="flex gap-2">
+                <button 
+                   onClick={() => setViewingReport(null)}
+                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
+                >
+                  Fechar
+                </button>
+                {viewingReport.status !== ReportStatus.RESOLVED && (
+                  <button 
+                    onClick={() => changeStatus(ReportStatus.RESOLVED)}
+                    className="flex items-center gap-2 px-4 py-2 bg-ifrn-green text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
+                  >
+                    <CheckCircle size={16} /> Marcar Resolvido
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Confirmation Delete Modal */}
+      <Modal 
+        isOpen={showDeleteConfirm} 
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Confirmar Exclusão"
+      >
+         <div className="space-y-4">
+            <div className="bg-red-50 text-red-800 p-4 rounded-lg flex items-start gap-3 border border-red-200">
+               <AlertTriangle className="flex-shrink-0" size={20} />
+               <div className="text-sm">
+                  <p className="font-bold">Atenção!</p>
+                  <p className="mt-1">Você tem certeza que deseja excluir permanentemente o relato de perda do item: <strong>{viewingReport?.itemDescription}</strong>?</p>
+                  <p className="mt-2 text-xs">Esta ação não poderá ser desfeita.</p>
+               </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-2">
+               <button 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium"
+               >
+                  Cancelar
+               </button>
+               <button 
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-bold flex items-center gap-2"
+               >
+                  <Trash2 size={16} /> Sim, Excluir
+               </button>
+            </div>
+         </div>
       </Modal>
     </div>
   );

@@ -246,6 +246,10 @@ export const StorageService = {
     }
     setStorage('reports', reports);
   },
+  deleteReport: (id: string) => {
+    const reports = StorageService.getReports().filter(r => r.id !== id);
+    setStorage('reports', reports);
+  },
   deleteAllReports: () => {
     setStorage('reports', []);
   },
