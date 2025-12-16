@@ -60,22 +60,34 @@ const App: React.FC = () => {
     }
   }, [activeTab, user]);
 
-  // Refresh Data Helper (Async)
+  // Refresh Data Helper (Async) with Timeout
   const refreshData = async () => {
     setLoading(true);
     try {
-      const [fetchedItems, fetchedReports, fetchedPeople, fetchedUsers] = await Promise.all([
+      // Create a timeout promise that rejects after 10 seconds
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Tempo limite excedido")), 10000)
+      );
+
+      const dataPromise = Promise.all([
         StorageService.getItems(),
         StorageService.getReports(),
         StorageService.getPeople(),
         StorageService.getUsers()
       ]);
+
+      // Race between data fetch and timeout to prevent infinite loading
+      const result = await Promise.race([dataPromise, timeout]);
+      const [fetchedItems, fetchedReports, fetchedPeople, fetchedUsers] = result as [FoundItem[], LostReport[], Person[], User[]];
+
       setItems(fetchedItems);
       setReports(fetchedReports);
       setPeople(fetchedPeople);
       setUsers(fetchedUsers);
     } catch (e) {
       console.error("Erro ao carregar dados", e);
+      // Optional: Show a subtle alert or toast, but avoid blocking UI flow too much
+      // If it's a timeout, it might be the Supabase key or network
     } finally {
       setLoading(false);
     }
@@ -165,7 +177,7 @@ const App: React.FC = () => {
         setLoginError('Credenciais inválidas. Tente novamente.');
       }
     } catch (e) {
-      setLoginError('Erro de conexão.');
+      setLoginError('Erro de conexão ou configuração.');
     } finally {
       setLoading(false);
     }
