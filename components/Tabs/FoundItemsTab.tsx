@@ -40,6 +40,8 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
   const [dateFilter, setDateFilter] = useState<DateFilterType>('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  const userString = `${user.name} (${user.matricula})`;
   
   // Helper: Remove accents and lower case for search
   const normalizeText = (text: string) => {
@@ -176,7 +178,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
       status: editingItem ? editingItem.status : ItemStatus.AVAILABLE,
     };
 
-    StorageService.saveItem(newItem, isNew ? 'Novo item cadastrado.' : 'Detalhes do item editados.');
+    StorageService.saveItem(newItem, isNew ? 'Novo item cadastrado.' : 'Detalhes do item editados.', userString);
     onUpdate();
     setShowEditModal(false);
     setEditingItem(null);
@@ -232,7 +234,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
       const updatedReport: LostReport = {
         ...selectedReport,
         status: ReportStatus.RESOLVED,
-        history: [...selectedReport.history, { date: new Date().toISOString(), note: `Item encontrado (ID: ${itemToReturn.id}) e devolvido.` }]
+        history: [...selectedReport.history, { date: new Date().toISOString(), note: `Item encontrado (ID: ${itemToReturn.id}) e devolvido.`, user: userString }]
       };
       StorageService.saveReport(updatedReport);
     }
@@ -244,7 +246,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
       returnedDate: new Date().toISOString()
     };
     
-    StorageService.saveItem(updatedItem, logMessage);
+    StorageService.saveItem(updatedItem, logMessage, userString);
     
     onUpdate();
     setShowReturnModal(false);
@@ -253,14 +255,16 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
 
   const handleCancelReturn = (e: React.MouseEvent, item: FoundItem) => {
     e.stopPropagation();
-    if (confirm('Deseja cancelar a devolução e marcar o item como Disponível novamente?')) {
+    const action = item.status === ItemStatus.DISCARDED ? "cancelar o descarte" : "cancelar a devolução";
+    
+    if (confirm(`Deseja ${action} e marcar o item como Disponível novamente?`)) {
       const updated = {
         ...item,
         status: ItemStatus.AVAILABLE,
         returnedTo: undefined,
         returnedDate: undefined
       };
-      StorageService.saveItem(updated, 'Devolução cancelada. Item retornou para Disponível.');
+      StorageService.saveItem(updated, `${action === "cancelar o descarte" ? 'Descarte' : 'Devolução'} cancelada. Item retornou para Disponível.`, userString);
       onUpdate();
     }
   };
@@ -275,7 +279,11 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
       selectedItems.forEach(id => {
         const item = items.find(i => i.id === id);
         if (item) {
-          StorageService.saveItem({ ...item, status: ItemStatus.DISCARDED }, 'Item marcado como Doado/Descartado em lote.');
+          StorageService.saveItem({ 
+            ...item, 
+            status: ItemStatus.DISCARDED,
+            returnedDate: new Date().toISOString() // Registra data da saída
+          }, 'Item marcado como Doado/Descartado em lote.', userString);
         }
       });
       setSelectedItems([]);
@@ -294,7 +302,9 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
 
   const formatDate = (isoString: string) => {
     if (!isoString) return '-';
-    const [year, month, day] = isoString.split('-');
+    // Se a string tem 'T', é ISO completo. Se não, é YYYY-MM-DD
+    const datePart = isoString.split('T')[0];
+    const [year, month, day] = datePart.split('-');
     return `${day}/${month}/${year}`;
   };
 
@@ -306,7 +316,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
           {Object.values(ItemStatus).map((status) => (
             <button
               key={status}
-              onClick={() => setActiveSubTab(status)}
+              onClick={() => { setActiveSubTab(status); setSelectedItems([]); }}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
                 activeSubTab === status 
                 ? 'bg-white text-ifrn-darkGreen shadow-sm' 
@@ -319,7 +329,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
         </div>
         
         <div className="flex gap-2 w-full md:w-auto">
-          {selectedItems.length > 0 && user.level !== UserLevel.STANDARD && (
+          {selectedItems.length > 0 && activeSubTab === ItemStatus.AVAILABLE && user.level !== UserLevel.STANDARD && (
             <button 
               onClick={handleBatchDonate}
               className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
@@ -390,30 +400,39 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
           <table className="w-full text-sm text-left text-gray-600">
             <thead className="bg-gray-50/50 text-gray-500 font-bold uppercase text-[11px] tracking-wider">
               <tr>
+                {/* HEADERS FOR AVAILABLE */}
                 {activeSubTab === ItemStatus.AVAILABLE && (
-                  <th className="p-4 w-4">
-                    <input 
-                      type="checkbox" 
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedItems(filteredItems.map(i => i.id));
-                        else setSelectedItems([]);
-                      }}
-                      checked={filteredItems.length > 0 && selectedItems.length === filteredItems.length}
-                      disabled={user.level === UserLevel.STANDARD}
-                    />
-                  </th>
+                  <>
+                    <th className="p-4 w-4">
+                      <input 
+                        type="checkbox" 
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedItems(filteredItems.map(i => i.id));
+                          else setSelectedItems([]);
+                        }}
+                        checked={filteredItems.length > 0 && selectedItems.length === filteredItems.length}
+                        disabled={user.level === UserLevel.STANDARD}
+                      />
+                    </th>
+                    <th className="p-4"><div className="flex items-center gap-1 cursor-pointer">ID <ChevronUp size={14} /></div></th>
+                    <th className="p-4">Descrição</th>
+                    <th className="p-4">Local Encontrado</th>
+                    <th className="p-4">Guardado Em</th>
+                    <th className="p-4">Data</th>
+                    <th className="p-4">Tempo no Estoque</th>
+                    <th className="p-4 text-center">Ações</th>
+                  </>
                 )}
-                <th className="p-4">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-gray-700">
-                    ID <ChevronUp size={14} />
-                  </div>
-                </th>
-                <th className="p-4">Descrição</th>
-                <th className="p-4">Local Encontrado</th>
-                <th className="p-4">Guardado Em</th>
-                <th className="p-4">Data</th>
-                <th className="p-4">Tempo no Estoque</th>
-                <th className="p-4 text-center">Ações</th>
+
+                {/* HEADERS FOR RETURNED / DISCARDED */}
+                {(activeSubTab === ItemStatus.RETURNED || activeSubTab === ItemStatus.DISCARDED) && (
+                  <>
+                    <th className="p-4"><div className="flex items-center gap-1 cursor-pointer">ID <ChevronUp size={14} /></div></th>
+                    <th className="p-4">Descrição</th>
+                    <th className="p-4">Data de {activeSubTab === ItemStatus.RETURNED ? 'Devolução' : 'Saída'}</th>
+                    <th className="p-4 text-center">Ações</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -428,78 +447,71 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
                     className="hover:bg-gray-50 transition-colors cursor-pointer"
                     onClick={() => openDetails(item)}
                   >
+                     {/* BODY FOR AVAILABLE */}
                      {activeSubTab === ItemStatus.AVAILABLE && (
-                      <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox" 
-                          checked={selectedItems.includes(item.id)}
-                          onChange={() => toggleSelection(item.id)}
-                          disabled={user.level === UserLevel.STANDARD}
-                        />
-                      </td>
-                    )}
-                    <td className="p-4 font-bold text-ifrn-green">{item.id}</td>
-                    <td className="p-4">
-                      <div className="font-medium text-gray-900 group flex items-center gap-2">
-                        {item.description}
-                        <Info size={14} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                      {item.detailedDescription && (
-                        <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">{item.detailedDescription}</div>
-                      )}
-                    </td>
-                    <td className="p-4 text-gray-700">{item.locationFound}</td>
-                    <td className="p-4 font-medium text-gray-800">{item.locationStored}</td>
-                    <td className="p-4 text-gray-600">{formatDate(item.dateFound)}</td>
-                    <td className="p-4 font-medium">
-                      {getDaysInStock(item.dateFound)}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex justify-center gap-2">
-                        {item.status === ItemStatus.AVAILABLE && (
-                          <>
-                            <button 
-                              onClick={(e) => handleOpenReturnModal(e, item)}
-                              title="Devolver / Dar Saída"
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                            >
-                              <CornerUpRight size={18} />
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setEditingItem(item); setShowEditModal(true); }}
-                              title="Editar"
-                              className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                            
-                            {user.level !== UserLevel.STANDARD && (
-                              <button 
-                                onClick={(e) => handleDelete(e, item.id)}
-                                title="Excluir"
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                              >
-                                <Trash2 size={18} />
-                              </button>
+                        <>
+                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="checkbox" 
+                              checked={selectedItems.includes(item.id)}
+                              onChange={() => toggleSelection(item.id)}
+                              disabled={user.level === UserLevel.STANDARD}
+                            />
+                          </td>
+                          <td className="p-4 font-bold text-ifrn-green">{item.id}</td>
+                          <td className="p-4">
+                            <div className="font-medium text-gray-900 group flex items-center gap-2">
+                              {item.description}
+                              <Info size={14} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            {item.detailedDescription && (
+                              <div className="text-xs text-gray-400 mt-1 truncate max-w-xs">{item.detailedDescription}</div>
                             )}
-                          </>
-                        )}
+                          </td>
+                          <td className="p-4 text-gray-700">{item.locationFound}</td>
+                          <td className="p-4 font-medium text-gray-800">{item.locationStored}</td>
+                          <td className="p-4 text-gray-600">{formatDate(item.dateFound)}</td>
+                          <td className="p-4 font-medium">{getDaysInStock(item.dateFound)}</td>
+                          <td className="p-4">
+                            <div className="flex justify-center gap-2">
+                                <button onClick={(e) => handleOpenReturnModal(e, item)} title="Devolver / Dar Saída" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"><CornerUpRight size={18} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); setEditingItem(item); setShowEditModal(true); }} title="Editar" className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-md transition-colors"><Pencil size={18} /></button>
+                                {user.level !== UserLevel.STANDARD && (
+                                  <button onClick={(e) => handleDelete(e, item.id)} title="Excluir" className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={18} /></button>
+                                )}
+                            </div>
+                          </td>
+                        </>
+                     )}
 
-                        {item.status === ItemStatus.RETURNED && (
-                          <button 
-                            onClick={(e) => handleCancelReturn(e, item)}
-                            title="Cancelar Devolução (Estornar)"
-                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md transition-colors flex items-center gap-1 text-xs font-medium px-2"
-                          >
-                            <RotateCcw size={14} /> Cancelar Devolução
-                          </button>
-                        )}
+                     {/* BODY FOR RETURNED / DISCARDED */}
+                     {(activeSubTab === ItemStatus.RETURNED || activeSubTab === ItemStatus.DISCARDED) && (
+                        <>
+                           <td className="p-4 font-bold text-ifrn-green">{item.id}</td>
+                           <td className="p-4">
+                            <div className="font-medium text-gray-900 group flex items-center gap-2">
+                              {item.description}
+                            </div>
+                            {activeSubTab === ItemStatus.RETURNED && item.returnedTo && (
+                                <div className="text-xs text-gray-500 mt-1">Para: {item.returnedTo}</div>
+                            )}
+                          </td>
+                          <td className="p-4 text-gray-600">
+                             {item.returnedDate ? formatDate(item.returnedDate) : '-'}
+                             {item.returnedDate && <span className="text-xs text-gray-400 ml-1">({new Date(item.returnedDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})</span>}
+                          </td>
+                          <td className="p-4 text-center">
+                            <button 
+                              onClick={(e) => handleCancelReturn(e, item)}
+                              title={activeSubTab === ItemStatus.RETURNED ? "Cancelar Devolução (Estornar)" : "Cancelar Descarte (Estornar)"}
+                              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md transition-colors inline-flex items-center gap-1 text-xs font-medium px-2 border border-amber-200"
+                            >
+                              <RotateCcw size={14} /> Estornar
+                            </button>
+                          </td>
+                        </>
+                     )}
 
-                         {item.status === ItemStatus.DISCARDED && (
-                           <span className="text-xs text-gray-400 italic">Arquivado</span>
-                         )}
-                      </div>
-                    </td>
                   </tr>
                 ))
               )}
@@ -694,11 +706,17 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
                  <span className="text-xs font-bold text-gray-400 uppercase">Guardado Em</span>
                  <p>{viewingItem.locationStored}</p>
               </div>
-              {viewingItem.returnedTo && (
+              {viewingItem.returnedTo && viewingItem.status === ItemStatus.RETURNED && (
                 <div className="col-span-2 bg-green-50 p-2 rounded border border-green-100">
                   <span className="text-xs font-bold text-green-700 uppercase">Devolvido Para</span>
                   <p className="text-green-900 font-medium">{viewingItem.returnedTo}</p>
                   <p className="text-xs text-green-700">{new Date(viewingItem.returnedDate!).toLocaleString()}</p>
+                </div>
+              )}
+               {viewingItem.status === ItemStatus.DISCARDED && viewingItem.returnedDate && (
+                <div className="col-span-2 bg-gray-200 p-2 rounded border border-gray-300">
+                  <span className="text-xs font-bold text-gray-700 uppercase">Descartado/Doado em</span>
+                  <p className="text-gray-900 font-medium">{new Date(viewingItem.returnedDate).toLocaleString()}</p>
                 </div>
               )}
             </div>

@@ -25,6 +25,8 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
   const [newWhatsapp, setNewWhatsapp] = useState('');
   const [newEmail, setNewEmail] = useState('');
 
+  const userString = `${user.name} (${user.matricula})`;
+
   // Helper: Remove accents and lower case for search (Igual ao FoundItemsTab)
   const normalizeText = (text: string) => {
     return text
@@ -61,7 +63,7 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
       email: newEmail,
       status: ReportStatus.OPEN,
       createdAt: new Date().toISOString(),
-      history: [{ date: new Date().toISOString(), note: 'Relato de perda criado.' }]
+      history: [{ date: new Date().toISOString(), note: 'Relato de perda criado.', user: userString }]
     };
 
     StorageService.saveReport(newReport);
@@ -80,7 +82,7 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
     if (!viewingReport || !note.trim()) return;
     const updated = {
       ...viewingReport,
-      history: [...viewingReport.history, { date: new Date().toISOString(), note }]
+      history: [...viewingReport.history, { date: new Date().toISOString(), note, user: userString }]
     };
     StorageService.saveReport(updated);
     setViewingReport(updated);
@@ -92,7 +94,7 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
     const updated = {
       ...viewingReport,
       status,
-      history: [...viewingReport.history, { date: new Date().toISOString(), note: `Status alterado para: ${status}` }]
+      history: [...viewingReport.history, { date: new Date().toISOString(), note: `Status alterado para: ${status}`, user: userString }]
     };
     StorageService.saveReport(updated);
     setViewingReport(updated);
@@ -304,6 +306,7 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
                 {viewingReport.history.map((h, i) => (
                   <div key={i} className="text-xs border-l-2 border-gray-300 pl-2">
                     <span className="text-gray-500">{new Date(h.date).toLocaleString()}:</span> <span className="text-gray-800">{h.note}</span>
+                    {h.user && <span className="block text-[10px] text-gray-400">Por: {h.user}</span>}
                   </div>
                 ))}
               </div>

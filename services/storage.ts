@@ -31,7 +31,7 @@ const INITIAL_ITEMS: FoundItem[] = [
     dateRegistered: new Date().toISOString(),
     status: ItemStatus.AVAILABLE,
     history: [
-      { date: new Date().toISOString(), action: 'Item registrado no sistema.', user: 'admin' }
+      { date: new Date().toISOString(), action: 'Item registrado no sistema.', user: 'Administrador COADES (admin)' }
     ]
   },
   {
@@ -45,8 +45,8 @@ const INITIAL_ITEMS: FoundItem[] = [
     returnedTo: 'João Silva',
     returnedDate: new Date().toISOString(),
     history: [
-      { date: new Date(Date.now() - 86400000 * 5).toISOString(), action: 'Item registrado.', user: 'op1' },
-      { date: new Date().toISOString(), action: 'Item devolvido para João Silva.', user: 'admin' }
+      { date: new Date(Date.now() - 86400000 * 5).toISOString(), action: 'Item registrado.', user: 'Operador Padrão (op1)' },
+      { date: new Date().toISOString(), action: 'Item devolvido para João Silva.', user: 'Administrador COADES (admin)' }
     ]
   }
 ];
@@ -65,7 +65,7 @@ const INITIAL_REPORTS: LostReport[] = [
     whatsapp: '84999998888',
     status: ReportStatus.OPEN,
     createdAt: new Date().toISOString(),
-    history: [{ date: new Date().toISOString(), note: 'Relato criado.' }]
+    history: [{ date: new Date().toISOString(), note: 'Relato criado.', user: 'Administrador COADES (admin)' }]
   }
 ];
 
@@ -200,7 +200,7 @@ export const StorageService = {
 
   // Items
   getItems: (): FoundItem[] => getStorage('items', INITIAL_ITEMS),
-  saveItem: (item: FoundItem, actionDescription?: string) => {
+  saveItem: (item: FoundItem, actionDescription?: string, actorName: string = 'Sistema') => {
     const items = StorageService.getItems();
     const exists = items.find(i => i.id === item.id);
     
@@ -208,7 +208,7 @@ export const StorageService = {
     const newHistoryEntry = {
       date: new Date().toISOString(),
       action: actionDescription || (exists ? 'Item atualizado.' : 'Item registrado.'),
-      user: 'Sistema' // Em um app real, pegaríamos o usuário logado
+      user: actorName
     };
 
     if (exists) {

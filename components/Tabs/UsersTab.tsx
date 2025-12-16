@@ -16,6 +16,8 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate }) => {
   
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+  const userString = `${currentUser.name} (${currentUser.matricula})`;
+
   // Helper: Verifica se o usuário atual tem permissão para EDITAR/EXCLUIR o alvo
   const canManageUser = (targetUser: User) => {
     // REGRA: Usuário pode editar seu próprio perfil (Admin e Avançado)
@@ -73,7 +75,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate }) => {
     };
 
     try {
-      StorageService.saveUser(newUser as User, currentUser.name);
+      StorageService.saveUser(newUser as User, userString);
       onUpdate();
       setShowEditModal(false);
       setSelectedUser(null);
@@ -87,7 +89,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate }) => {
     if (!selectedUser) return;
     if (confirm(`Deseja resetar a senha do usuário ${selectedUser.name} para 'ifrn123'?`)) {
        const updatedUser = { ...selectedUser, password: 'ifrn123' };
-       StorageService.saveUser(updatedUser, `${currentUser.name} (Reset de Senha)`);
+       StorageService.saveUser(updatedUser, `${userString} (Reset de Senha)`);
        onUpdate();
        alert('Senha resetada com sucesso para: ifrn123');
        setShowEditModal(false);

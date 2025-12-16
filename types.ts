@@ -54,7 +54,7 @@ export interface FoundItem {
   dateRegistered: string; // ISO datetime
   status: ItemStatus;
   returnedTo?: string; // Person ID or Name
-  returnedDate?: string;
+  returnedDate?: string; // Data de devolução OU descarte
   history?: ItemHistory[]; // Log de auditoria do objeto
 }
 
@@ -67,7 +67,7 @@ export interface LostReport {
   email?: string;
   status: ReportStatus;
   createdAt: string;
-  history: { date: string; note: string }[];
+  history: { date: string; note: string; user?: string }[];
 }
 
 export interface AuditLog {
