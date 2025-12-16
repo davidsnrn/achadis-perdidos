@@ -427,46 +427,48 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate }) => {
         </div>
         
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
-              <tr>
-                <th className="p-3">Matrícula</th>
-                <th className="p-3">Nome</th>
-                <th className="p-3">Vínculo</th>
-                <th className="p-3 w-10 text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {currentItems.map(p => (
-                <tr 
-                  key={p.id} 
-                  className="hover:bg-gray-50 cursor-pointer group"
-                  onClick={() => { setEditingPerson(p); setShowEditModal(true); }}
-                >
-                  <td className="p-3 font-mono text-gray-600">{p.matricula}</td>
-                  <td className="p-3 font-medium text-gray-900">{p.name}</td>
-                  <td className="p-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${p.type === PersonType.STUDENT ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
-                      {p.type}
-                    </span>
-                  </td>
-                  <td className="p-3 text-center">
-                    <div className="flex justify-center gap-2">
-                      <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                         <Pencil size={14} />
-                      </button>
-                      <button 
-                        onClick={(e) => handleDelete(e, p.id)}
-                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                      >
-                         <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
+                <tr>
+                  <th className="p-3 whitespace-nowrap">Matrícula</th>
+                  <th className="p-3 whitespace-nowrap">Nome</th>
+                  <th className="p-3 whitespace-nowrap">Vínculo</th>
+                  <th className="p-3 w-10 text-center whitespace-nowrap">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {currentItems.map(p => (
+                  <tr 
+                    key={p.id} 
+                    className="hover:bg-gray-50 cursor-pointer group"
+                    onClick={() => { setEditingPerson(p); setShowEditModal(true); }}
+                  >
+                    <td className="p-3 font-mono text-gray-600 whitespace-nowrap">{p.matricula}</td>
+                    <td className="p-3 font-medium text-gray-900 whitespace-nowrap">{p.name}</td>
+                    <td className="p-3 whitespace-nowrap">
+                      <span className={`text-xs px-2 py-1 rounded-full ${p.type === PersonType.STUDENT ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                        {p.type}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center whitespace-nowrap">
+                      <div className="flex justify-center gap-2">
+                        <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                           <Pencil size={14} />
+                        </button>
+                        <button 
+                          onClick={(e) => handleDelete(e, p.id)}
+                          className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        >
+                           <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           
           {/* Pagination Controls */}
           {totalPages > 1 && (

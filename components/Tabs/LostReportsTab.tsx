@@ -186,41 +186,43 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate }) =
               <Search className="absolute left-2.5 top-2 text-gray-400" size={14} />
             </div>
           </div>
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
-              <tr>
-                <th className="p-3">Data</th>
-                <th className="p-3">Item</th>
-                <th className="p-3">Quem</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {reports
-                .filter(r => r.itemDescription.toLowerCase().includes(searchTerm.toLowerCase()) || r.personName.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map(report => (
-                <tr key={report.id} className="hover:bg-gray-50">
-                  <td className="p-3 text-gray-500">{new Date(report.createdAt).toLocaleDateString()}</td>
-                  <td className="p-3 font-medium text-gray-800">{report.itemDescription}</td>
-                  <td className="p-3 text-gray-600">{report.personName}</td>
-                  <td className="p-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 ${
-                      report.status === ReportStatus.OPEN ? 'bg-yellow-100 text-yellow-800' :
-                      report.status === ReportStatus.FOUND ? 'bg-blue-100 text-blue-800' :
-                      'bg-green-100 text-green-800 border border-green-200 shadow-sm'
-                    }`}>
-                      {report.status === ReportStatus.RESOLVED && <CheckCircle size={12} />}
-                      {report.status}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <button onClick={() => setViewingReport(report)} className="text-ifrn-green hover:underline font-medium">Ver</button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
+                <tr>
+                  <th className="p-3 whitespace-nowrap">Data</th>
+                  <th className="p-3 whitespace-nowrap">Item</th>
+                  <th className="p-3 whitespace-nowrap">Quem</th>
+                  <th className="p-3 whitespace-nowrap">Status</th>
+                  <th className="p-3 whitespace-nowrap">Ação</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {reports
+                  .filter(r => r.itemDescription.toLowerCase().includes(searchTerm.toLowerCase()) || r.personName.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map(report => (
+                  <tr key={report.id} className="hover:bg-gray-50">
+                    <td className="p-3 text-gray-500 whitespace-nowrap">{new Date(report.createdAt).toLocaleDateString()}</td>
+                    <td className="p-3 font-medium text-gray-800 whitespace-nowrap">{report.itemDescription}</td>
+                    <td className="p-3 text-gray-600 whitespace-nowrap">{report.personName}</td>
+                    <td className="p-3 whitespace-nowrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 ${
+                        report.status === ReportStatus.OPEN ? 'bg-yellow-100 text-yellow-800' :
+                        report.status === ReportStatus.FOUND ? 'bg-blue-100 text-blue-800' :
+                        'bg-green-100 text-green-800 border border-green-200 shadow-sm'
+                      }`}>
+                        {report.status === ReportStatus.RESOLVED && <CheckCircle size={12} />}
+                        {report.status}
+                      </span>
+                    </td>
+                    <td className="p-3 whitespace-nowrap">
+                      <button onClick={() => setViewingReport(report)} className="text-ifrn-green hover:underline font-medium">Ver</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

@@ -162,66 +162,66 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate }) => {
 
       {/* Users Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
-            <tr>
-              <th className="p-4">Matrícula (Login)</th>
-              <th className="p-4">Nome</th>
-              <th className="p-4">Nível de Acesso</th>
-              <th className="p-4 text-center">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {visibleUsers.map(u => (
-              <tr 
-                key={u.id} 
-                className={`hover:bg-gray-50 cursor-pointer ${u.id === currentUser.id ? 'bg-blue-50/50' : ''}`}
-                onClick={() => handleRowClick(u)}
-                title="Clique para ver detalhes"
-              >
-                <td className="p-4 font-mono text-ifrn-green font-bold">{u.matricula}</td>
-                <td className="p-4 font-medium flex items-center gap-2">
-                   {u.id === currentUser.id && <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold">Você</span>}
-                   {u.name}
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded text-xs font-bold ${
-                    u.level === UserLevel.ADMIN ? 'bg-red-100 text-red-800' : 
-                    u.level === UserLevel.ADVANCED ? 'bg-purple-100 text-purple-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {u.level}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <div className="flex justify-center gap-2">
-                     {/* Botão de Olho Removido conforme solicitado */}
-                     
-                     {/* Botões de Ação */}
-                     {canManageUser(u) && (
-                       <>
-                         <button 
-                          onClick={(e) => openEditModal(e, u)}
-                          className="text-gray-400 hover:text-blue-600 p-1.5 transition-colors"
-                          title="Editar"
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button 
-                          onClick={(e) => handleDelete(e, u)}
-                          className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"
-                          title="Excluir"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                       </>
-                     )}
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
+              <tr>
+                <th className="p-4 whitespace-nowrap">Matrícula (Login)</th>
+                <th className="p-4 whitespace-nowrap">Nome</th>
+                <th className="p-4 whitespace-nowrap">Nível de Acesso</th>
+                <th className="p-4 text-center whitespace-nowrap">Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {visibleUsers.map(u => (
+                <tr 
+                  key={u.id} 
+                  className={`hover:bg-gray-50 cursor-pointer ${u.id === currentUser.id ? 'bg-blue-50/50' : ''}`}
+                  onClick={() => handleRowClick(u)}
+                  title="Clique para ver detalhes"
+                >
+                  <td className="p-4 font-mono text-ifrn-green font-bold whitespace-nowrap">{u.matricula}</td>
+                  <td className="p-4 font-medium flex items-center gap-2 whitespace-nowrap">
+                    {u.id === currentUser.id && <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold">Você</span>}
+                    {u.name}
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      u.level === UserLevel.ADMIN ? 'bg-red-100 text-red-800' : 
+                      u.level === UserLevel.ADVANCED ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {u.level}
+                    </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="flex justify-center gap-2">
+                      {/* Botões de Ação */}
+                      {canManageUser(u) && (
+                        <>
+                          <button 
+                            onClick={(e) => openEditModal(e, u)}
+                            className="text-gray-400 hover:text-blue-600 p-1.5 transition-colors"
+                            title="Editar"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                          <button 
+                            onClick={(e) => handleDelete(e, u)}
+                            className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal: Novo / Editar */}

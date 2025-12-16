@@ -12,7 +12,7 @@ interface Props {
   user: User;
 }
 
-type DateFilterType = 'ALL' | 'TODAY' | 'WEEK' | 'CUSTOM';
+type DateFilterType = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR' | 'CUSTOM';
 
 export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdate, user }) => {
   const [activeSubTab, setActiveSubTab] = useState<ItemStatus>(ItemStatus.AVAILABLE);
@@ -39,6 +39,11 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
   const [dateFilter, setDateFilter] = useState<DateFilterType>('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  
+  // New Filters State: Month (YYYY-MM) and Year (YYYY)
+  const currentYear = new Date().getFullYear();
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); 
+  const [selectedYear, setSelectedYear] = useState(currentYear.toString());
 
   // Helper: Remove accents and lower case for search
   const normalizeText = (text: string) => {
@@ -53,18 +58,31 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
     return items.filter(item => {
       const matchesStatus = item.status === activeSubTab;
       
-      const searchTerms = normalizeText(searchTerm).split(/\s+/).filter(t => t.length > 0);
+      const rawSearch = searchTerm.trim();
       let matchesSearch = true;
-      if (searchTerms.length > 0) {
-        const itemSearchableText = normalizeText(`
-          ${item.id} 
-          ${item.description} 
-          ${item.detailedDescription || ''} 
-          ${item.locationFound} 
-          ${item.locationStored}
-        `);
-        
-        matchesSearch = searchTerms.every(term => itemSearchableText.includes(term));
+
+      if (rawSearch.startsWith('#')) {
+         // Busca específica por ID (ex: #1)
+         const searchId = parseInt(rawSearch.replace('#', ''));
+         if (!isNaN(searchId)) {
+            matchesSearch = item.id === searchId;
+         } else {
+            // Se digitou # mas não seguiu de numero válido, não retorna nada
+            matchesSearch = false;
+         }
+      } else {
+        // Busca textual padrão
+        const searchTerms = normalizeText(searchTerm).split(/\s+/).filter(t => t.length > 0);
+        if (searchTerms.length > 0) {
+          const itemSearchableText = normalizeText(`
+            ${item.id} 
+            ${item.description} 
+            ${item.detailedDescription || ''} 
+            ${item.locationFound} 
+            ${item.locationStored}
+          `);
+          matchesSearch = searchTerms.every(term => itemSearchableText.includes(term));
+        }
       }
 
       let matchesDate = true;
@@ -79,6 +97,12 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
           const oneWeekAgo = new Date(today);
           oneWeekAgo.setDate(today.getDate() - 7);
           matchesDate = itemDate >= oneWeekAgo && itemDate <= new Date();
+        } else if (dateFilter === 'MONTH') {
+          // item.dateFound format is YYYY-MM-DD. selectedMonth is YYYY-MM.
+          matchesDate = item.dateFound.startsWith(selectedMonth);
+        } else if (dateFilter === 'YEAR') {
+          // item.dateFound format is YYYY-MM-DD. selectedYear is YYYY.
+          matchesDate = item.dateFound.startsWith(selectedYear);
         } else if (dateFilter === 'CUSTOM' && startDate && endDate) {
           const start = new Date(startDate + 'T00:00:00');
           const end = new Date(endDate + 'T23:59:59');
@@ -88,7 +112,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
 
       return matchesStatus && matchesSearch && matchesDate;
     });
-  }, [items, activeSubTab, searchTerm, dateFilter, startDate, endDate]);
+  }, [items, activeSubTab, searchTerm, dateFilter, startDate, endDate, selectedMonth, selectedYear]);
 
   // Autocomplete Filter for People (Enhanced Search)
   const filteredPeople = useMemo(() => {
@@ -238,12 +262,6 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
   };
 
   const handleBatchDonate = () => {
-    // Apesar de não ser "deletar", mudar status em lote geralmente é uma ação mais sensível.
-    // O pedido focou em não deletar. Vou manter a permissão de edição/doação para padrão?
-    // "apenas devolver ou editar". Doar é editar status. Vou manter visível, 
-    // mas se quiser restringir também, posso adicionar a checagem aqui.
-    // Por segurança e coerência com sistemas hierárquicos, vou restringir o botão de Doação em Lote também, 
-    // já que é uma forma de "limpar" a lista.
     if (user.level === UserLevel.STANDARD) {
         alert("Ação não permitida para nível Padrão.");
         return;
@@ -327,7 +345,7 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
           />
         </div>
 
-        <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
+        <div className="flex flex-wrap items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
           <Calendar size={16} className="text-gray-500 ml-2" />
           <select 
             value={dateFilter} 
@@ -337,9 +355,37 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
             <option value="ALL">Todo o período</option>
             <option value="TODAY">Hoje</option>
             <option value="WEEK">Esta Semana</option>
-            <option value="CUSTOM">Data Específica</option>
+            <option value="MONTH">Por Mês</option>
+            <option value="YEAR">Por Ano</option>
+            <option value="CUSTOM">Data Personalizada</option>
           </select>
           
+          {dateFilter === 'MONTH' && (
+             <div className="pl-2 border-l border-gray-300 animate-fadeIn">
+               <input 
+                 type="month" 
+                 value={selectedMonth}
+                 onChange={e => setSelectedMonth(e.target.value)}
+                 className="text-xs border rounded px-2 py-1.5 bg-white outline-none focus:border-ifrn-green"
+               />
+             </div>
+          )}
+
+          {dateFilter === 'YEAR' && (
+             <div className="pl-2 border-l border-gray-300 animate-fadeIn">
+               <select
+                 value={selectedYear}
+                 onChange={e => setSelectedYear(e.target.value)}
+                 className="text-xs border rounded px-2 py-1.5 bg-white outline-none focus:border-ifrn-green"
+               >
+                 {[0, 1, 2, 3, 4].map(i => {
+                   const year = currentYear - i;
+                   return <option key={year} value={year}>{year}</option>;
+                 })}
+               </select>
+             </div>
+          )}
+
           {dateFilter === 'CUSTOM' && (
             <div className="flex items-center gap-1 pl-2 border-l border-gray-300 animate-fadeIn">
               <input 
@@ -375,7 +421,6 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
                         else setSelectedItems([]);
                       }}
                       checked={filteredItems.length > 0 && selectedItems.length === filteredItems.length}
-                      // Desabilita seleção em lote se não tiver permissão de doar em lote (opcional, mas bom pra UX)
                       disabled={user.level === UserLevel.STANDARD}
                     />
                   </th>
@@ -450,7 +495,6 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
                               <Pencil size={18} />
                             </button>
                             
-                            {/* BOTÃO DE EXCLUIR: OCULTO PARA USUÁRIO PADRÃO */}
                             {user.level !== UserLevel.STANDARD && (
                               <button 
                                 onClick={(e) => handleDelete(e, item.id)}
