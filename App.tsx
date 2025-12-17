@@ -274,7 +274,7 @@ const App: React.FC = () => {
         await StorageService.deleteAllUsers(user.id);
         alert("Todos os usuários (exceto você) foram apagados.");
       } else if (confirmAction === 'FACTORY_RESET') {
-        await StorageService.factoryReset();
+        await StorageService.factoryReset(user.id);
         window.location.reload();
         return;
       }

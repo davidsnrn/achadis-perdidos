@@ -352,13 +352,17 @@ export const StorageService = {
     return (now - last) > TIMEOUT_MS;
   },
 
-  factoryReset: async () => {
+  factoryReset: async (currentAdminId: string) => {
      // Warning: This destroys DB data
      await StorageService.deleteAllItems();
      await StorageService.deleteAllReports();
      await StorageService.deleteAllPeople();
-     // Keep admin user usually? But requested factory reset.
-     // In supabase context, we might keep the structure but empty data.
+     
+     // Apaga todos os usuários MENOS o admin que está fazendo o reset
+     await StorageService.deleteAllUsers(currentAdminId);
+     
+     // Limpa o local storage, o que vai deslogar o usuário no front,
+     // mas como o usuário ainda existe no banco, ele pode logar novamente com a mesma senha.
      localStorage.clear();
   }
 };
