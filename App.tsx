@@ -567,7 +567,7 @@ const App: React.FC = () => {
               {activeTab === 'achados' && <FoundItemsTab items={items} people={people} reports={reports} onUpdate={refreshData} user={user} />}
               {activeTab === 'relatos' && <LostReportsTab reports={reports} people={people} onUpdate={refreshData} user={user} />}
               {activeTab === 'pessoas' && <PeopleTab people={people} onUpdate={refreshData} user={user} />}
-              {activeTab === 'usuarios' && <UsersTab users={users} currentUser={user} onUpdate={refreshData} />}
+              {activeTab === 'usuarios' && <UsersTab users={users} currentUser={user} onUpdate={refreshData} people={people} />}
              </>
            )}
         </div>
@@ -610,7 +610,7 @@ const App: React.FC = () => {
            {user.level === UserLevel.ADMIN && (
              <div className="border-t border-gray-100 pt-4 mt-4">
                <button type="button" onClick={() => setDesktopDeleteOpen(!desktopDeleteOpen)} className="w-full flex items-center justify-between p-3 bg-red-50 text-red-800 rounded-lg hover:bg-red-100 transition-colors">
-                 <div className="flex items-center gap-2 font-bold"><Trash size={18} /> Apagar Dados</div>
+                 <div className="flex items-center gap-2 font-bold"><Trash size={18} /></div>
                  {desktopDeleteOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                </button>
                {desktopDeleteOpen && (
