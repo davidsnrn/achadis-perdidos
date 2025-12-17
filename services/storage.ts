@@ -184,7 +184,10 @@ export const StorageService = {
   getItems: async (): Promise<FoundItem[]> => {
     const { data, error } = await supabase.from('items').select('*').order('id', { ascending: false });
     
-    if (error) return [];
+    if (error) {
+      console.error("Erro ao buscar itens:", error);
+      return [];
+    }
     
     // Map snake_case to camelCase manually if needed, or rely on TS checks
     // Supabase returns keys as columns in DB. If DB columns are snake_case, we need map.
@@ -206,57 +209,70 @@ export const StorageService = {
   },
 
   saveItem: async (item: FoundItem, actionDescription?: string, actorName: string = 'Sistema') => {
-    // Se ID for 0, é create
-    const isNew = item.id === 0;
+    try {
+      // Se ID for 0, é create
+      const isNew = item.id === 0;
 
-    const newHistoryEntry = {
-      date: new Date().toISOString(),
-      action: actionDescription || (isNew ? 'Item registrado.' : 'Item atualizado.'),
-      user: actorName
-    };
+      const newHistoryEntry = {
+        date: new Date().toISOString(),
+        action: actionDescription || (isNew ? 'Item registrado.' : 'Item atualizado.'),
+        user: actorName
+      };
 
-    let history = [];
-    if (!isNew) {
-       // Fetch current history
-       const { data } = await supabase.from('items').select('history').eq('id', item.id).single();
-       history = data?.history || [];
-    }
-    
-    history.push(newHistoryEntry);
-
-    const payload = {
-      description: item.description,
-      detailed_description: item.detailedDescription,
-      location_found: item.locationFound,
-      location_stored: item.locationStored,
-      date_found: item.dateFound,
-      date_registered: item.dateRegistered,
-      status: item.status,
-      returned_to: item.returnedTo,
-      returned_date: item.returnedDate,
-      history: history
-    };
-
-    if (isNew) {
-      // LÓGICA DE ID MANUAL PARA PERMITIR RESET
-      // Busca o último ID cadastrado
-      const { data: maxIdData } = await supabase
-        .from('items')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1);
-
-      let nextId = 1;
-      
-      // Se houver dados, pega o maior e soma 1. Se não houver (tabela vazia), mantém 1.
-      if (maxIdData && maxIdData.length > 0) {
-        nextId = maxIdData[0].id + 1;
+      let history = [];
+      if (!isNew) {
+         // Fetch current history
+         const { data } = await supabase.from('items').select('history').eq('id', item.id).single();
+         history = data?.history || [];
       }
       
-      // Insere com o ID explícito
-      await supabase.from('items').insert({ ...payload, id: nextId });
-    } else {
-      await supabase.from('items').update(payload).eq('id', item.id);
+      history.push(newHistoryEntry);
+
+      const payload = {
+        description: item.description,
+        detailed_description: item.detailedDescription,
+        location_found: item.locationFound,
+        location_stored: item.locationStored,
+        date_found: item.dateFound,
+        date_registered: item.dateRegistered,
+        status: item.status,
+        returned_to: item.returnedTo,
+        returned_date: item.returnedDate,
+        history: history
+      };
+
+      let error = null;
+
+      if (isNew) {
+        // LÓGICA DE ID MANUAL PARA PERMITIR RESET
+        // Busca o último ID cadastrado
+        const { data: maxIdData } = await supabase
+          .from('items')
+          .select('id')
+          .order('id', { ascending: false })
+          .limit(1);
+
+        let nextId = 1;
+        
+        // Se houver dados, pega o maior e soma 1. Se não houver (tabela vazia), mantém 1.
+        if (maxIdData && maxIdData.length > 0) {
+          nextId = maxIdData[0].id + 1;
+        }
+        
+        // Insere com o ID explícito
+        const res = await supabase.from('items').insert({ ...payload, id: nextId });
+        error = res.error;
+      } else {
+        const res = await supabase.from('items').update(payload).eq('id', item.id);
+        error = res.error;
+      }
+
+      if (error) {
+        throw error;
+      }
+    } catch (e: any) {
+      console.error("Erro completo ao salvar item:", e);
+      throw new Error(e.message || "Erro desconhecido ao salvar item.");
     }
   },
 
@@ -299,7 +315,8 @@ export const StorageService = {
       history: report.history
     };
 
-    await supabase.from('reports').upsert(payload);
+    const { error } = await supabase.from('reports').upsert(payload);
+    if (error) throw error;
   },
 
   deleteReport: async (id: string) => {

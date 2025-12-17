@@ -190,8 +190,8 @@ export const FoundItemsTab: React.FC<Props> = ({ items, people, reports, onUpdat
       onUpdate();
       setShowEditModal(false);
       setEditingItem(null);
-    } catch (e) {
-      alert("Erro ao salvar item");
+    } catch (e: any) {
+      alert(`Erro ao salvar item: ${e.message}`);
     } finally {
       setIsLoading(false);
     }
