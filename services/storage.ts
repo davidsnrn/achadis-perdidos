@@ -198,6 +198,7 @@ export const StorageService = {
       description: d.description,
       detailedDescription: d.detailed_description,
       locationFound: d.location_found,
+      location_stored: d.location_stored, // Fix if db uses snake_case return
       locationStored: d.location_stored,
       dateFound: d.date_found,
       dateRegistered: d.date_registered,
@@ -359,15 +360,23 @@ export const StorageService = {
 
   factoryReset: async (currentAdminId: string) => {
      // Warning: This destroys DB data
-     await StorageService.deleteAllItems();
-     await StorageService.deleteAllReports();
-     await StorageService.deleteAllPeople();
+     
+     // 1. Tenta usar a Stored Procedure (RPC) 'admin_reset_db' se existir.
+     // Essa função roda no servidor e faz TRUNCATE RESTART IDENTITY, que reseta o ID para 1.
+     const { error } = await supabase.rpc('admin_reset_db');
+
+     if (error) {
+       console.warn("RPC admin_reset_db não disponível. Usando fallback lento (IDs não serão resetados). Rode o script de reparo no Supabase.");
+       // Fallback manual (mais lento e não reseta contador de ID)
+       await StorageService.deleteAllItems();
+       await StorageService.deleteAllReports();
+       await StorageService.deleteAllPeople();
+     }
      
      // Apaga todos os usuários MENOS o admin que está fazendo o reset
      await StorageService.deleteAllUsers(currentAdminId);
      
-     // Limpa o local storage, o que vai deslogar o usuário no front,
-     // mas como o usuário ainda existe no banco, ele pode logar novamente com a mesma senha.
+     // Limpa o local storage
      localStorage.clear();
   }
 };
