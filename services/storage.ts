@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { FoundItem, ItemStatus, LostReport, Person, PersonType, ReportStatus, User, UserLevel } from "../types";
 
 // Configuração do Supabase
+// NOTA DE SEGURANÇA: Utilize apenas a chave pública (anon key) aqui. Nunca a service_role.
 const SUPABASE_URL = 'https://vfcnptykhuljtoykpbmv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_jjl3YMTXv7Ly-LwahfI3Yw_5GZD4fpv';
 
@@ -310,6 +311,7 @@ export const StorageService = {
   },
 
   // Auth Simulation (Using custom table, not Gotrue/Supabase Auth to keep logic simple)
+  // NOTA: Para total conformidade RLS, migrar para supabase.auth.signInWithPassword()
   login: async (matricula: string, pass: string): Promise<User | null> => {
     const { data, error } = await supabase
       .from('users')
