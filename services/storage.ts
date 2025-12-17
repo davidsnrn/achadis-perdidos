@@ -237,8 +237,23 @@ export const StorageService = {
     };
 
     if (isNew) {
-      // Remove ID para deixar o banco gerar (serial)
-      await supabase.from('items').insert(payload);
+      // LÓGICA DE ID MANUAL PARA PERMITIR RESET
+      // Busca o último ID cadastrado
+      const { data: maxIdData } = await supabase
+        .from('items')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      let nextId = 1;
+      
+      // Se houver dados, pega o maior e soma 1. Se não houver (tabela vazia), mantém 1.
+      if (maxIdData && maxIdData.length > 0) {
+        nextId = maxIdData[0].id + 1;
+      }
+      
+      // Insere com o ID explícito
+      await supabase.from('items').insert({ ...payload, id: nextId });
     } else {
       await supabase.from('items').update(payload).eq('id', item.id);
     }
