@@ -1,23 +1,31 @@
+
 import React, { useState, useMemo } from 'react';
-import { LostReport, ReportStatus, Person, PersonType, User, UserLevel } from '../../types';
+import { LostReport, ReportStatus, Person, PersonType, User, UserLevel, FoundItem, ItemStatus } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Search, Send, Clock, CheckCircle, User as UserIcon, Trash2, AlertTriangle, RotateCcw, Loader2 } from 'lucide-react';
+// Add FileText to imports from lucide-react
+import { Search, Send, Clock, CheckCircle, User as UserIcon, Trash2, AlertTriangle, RotateCcw, Loader2, Link as LinkIcon, Package, X, CornerUpRight, FileText } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
   reports: LostReport[];
   people: Person[];
+  items: FoundItem[];
   onUpdate: () => void;
   user: User;
 }
 
-export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, user }) => {
+export const LostReportsTab: React.FC<Props> = ({ reports, people, items, onUpdate, user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [personSearch, setPersonSearch] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [viewingReport, setViewingReport] = useState<LostReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Linking State
+  const [showItemLinkSelector, setShowItemLinkSelector] = useState(false);
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [linkedItem, setLinkedItem] = useState<FoundItem | null>(null);
+
   // Delete Confirmation State
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -45,6 +53,17 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
       return searchTerms.every(term => personText.includes(term));
     }).slice(0, 5);
   }, [people, personSearch]);
+
+  const availableItems = useMemo(() => {
+    const available = items.filter(i => i.status === ItemStatus.AVAILABLE);
+    if (!itemSearchTerm.trim()) return available.slice(0, 5);
+    
+    const terms = normalizeText(itemSearchTerm).split(/\s+/);
+    return available.filter(i => {
+      const text = normalizeText(`${i.id} ${i.description} ${i.locationFound}`);
+      return terms.every(t => text.includes(t));
+    }).slice(0, 5);
+  }, [items, itemSearchTerm]);
 
   const handleCreateReport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,12 +127,59 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
     onUpdate();
   };
 
+  const handleLinkItemAndResolve = async () => {
+    if (!viewingReport || !linkedItem) return;
+    setIsLoading(true);
+
+    try {
+      // 1. Atualizar o Item
+      const updatedItem: FoundItem = {
+        ...linkedItem,
+        status: ItemStatus.RETURNED,
+        returnedTo: viewingReport.personName,
+        returnedDate: new Date().toISOString()
+      };
+      await StorageService.saveItem(updatedItem, `Item devolvido via Relato de Perda (Relato ID: ${viewingReport.id}) para ${viewingReport.personName}.`, userString);
+
+      // 2. Atualizar o Relato
+      const updatedReport: LostReport = {
+        ...viewingReport,
+        status: ReportStatus.RESOLVED,
+        history: [
+          ...viewingReport.history, 
+          { 
+            date: new Date().toISOString(), 
+            note: `Item vinculado e devolvido (Item ID: #${linkedItem.id} - ${linkedItem.description}). Relato resolvido.`, 
+            user: userString 
+          }
+        ]
+      };
+      await StorageService.saveReport(updatedReport);
+
+      alert(`Sucesso! Item #${linkedItem.id} devolvido e relato encerrado.`);
+      setViewingReport(null);
+      setLinkedItem(null);
+      setShowItemLinkSelector(false);
+      onUpdate();
+    } catch (error) {
+      alert("Erro ao processar devolução vinculada.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!viewingReport) return;
     await StorageService.deleteReport(viewingReport.id);
     setShowDeleteConfirm(false);
     setViewingReport(null);
     onUpdate();
+  };
+
+  const closeModals = () => {
+    setViewingReport(null);
+    setShowItemLinkSelector(false);
+    setLinkedItem(null);
   };
 
   return (
@@ -296,46 +362,126 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
         {viewingReport && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="block text-gray-500 text-xs uppercase">Item</span>
-                <span className="font-medium text-lg text-gray-900">{viewingReport.itemDescription}</span>
+              <div className="col-span-2">
+                <span className="block text-gray-500 text-xs uppercase font-bold tracking-wider">Item Relatado</span>
+                <span className="font-bold text-xl text-gray-900 leading-tight">{viewingReport.itemDescription}</span>
               </div>
               <div>
-                <span className="block text-gray-500 text-xs uppercase">Status Atual</span>
-                <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold mt-1 ${
+                <span className="block text-gray-500 text-xs uppercase font-bold tracking-wider">Status Atual</span>
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold mt-1 shadow-sm ${
                    viewingReport.status === ReportStatus.OPEN ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
                 }`}>{viewingReport.status}</span>
               </div>
               <div>
-                <span className="block text-gray-500 text-xs uppercase">Contato</span>
-                <div className="flex gap-2 mt-1">
-                   <a href={`https://wa.me/55${viewingReport.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-green-600 hover:underline flex items-center gap-1">
+                <span className="block text-gray-500 text-xs uppercase font-bold tracking-wider">Contato</span>
+                <div className="flex flex-col gap-1 mt-1">
+                   <a href={`https://wa.me/55${viewingReport.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-green-600 hover:underline flex items-center gap-1 font-bold">
                      WhatsApp ({viewingReport.whatsapp})
                    </a>
-                   {viewingReport.email && <span className="text-gray-400">| {viewingReport.email}</span>}
+                   {viewingReport.email && <span className="text-gray-400 text-xs">{viewingReport.email}</span>}
                 </div>
               </div>
             </div>
 
+            {/* NEW SECTION: Linked Item / Search Item */}
+            {viewingReport.status === ReportStatus.OPEN && (
+              <div className="border-t pt-4">
+                <h4 className="font-bold text-gray-700 mb-3 text-sm flex items-center gap-2">
+                   <LinkIcon size={16} /> Item Encontrado no Inventário?
+                </h4>
+                
+                {!linkedItem ? (
+                  !showItemLinkSelector ? (
+                    <button 
+                      onClick={() => setShowItemLinkSelector(true)}
+                      className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-blue-200 text-blue-600 hover:bg-blue-50 rounded-xl transition-all font-medium text-sm"
+                    >
+                       <Package size={18} /> Vincular a um Item do Estoque
+                    </button>
+                  ) : (
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl space-y-3 animate-fadeIn">
+                       <div className="flex justify-between items-center mb-1">
+                          <label className="text-xs font-bold text-blue-700 uppercase">Buscar no Inventário</label>
+                          <button onClick={() => setShowItemLinkSelector(false)} className="text-gray-400 hover:text-red-500"><X size={16} /></button>
+                       </div>
+                       <div className="relative">
+                          <input 
+                            autoFocus
+                            type="text" 
+                            className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                            placeholder="Buscar por ID ou Descrição..."
+                            value={itemSearchTerm}
+                            onChange={e => setItemSearchTerm(e.target.value)}
+                          />
+                          <Search className="absolute left-3 top-2.5 text-blue-300" size={16} />
+                       </div>
+                       <div className="space-y-2">
+                          {availableItems.length === 0 ? (
+                            <p className="text-xs text-blue-400 italic text-center py-2">Nenhum item disponível encontrado.</p>
+                          ) : (
+                            availableItems.map(item => (
+                              <div 
+                                key={item.id} 
+                                onClick={() => setLinkedItem(item)}
+                                className="bg-white p-3 border rounded-lg hover:border-blue-500 cursor-pointer flex items-center justify-between group transition-all"
+                              >
+                                 <div className="min-w-0">
+                                    <p className="text-xs font-mono font-bold text-blue-600">#{item.id}</p>
+                                    <p className="text-sm font-bold text-gray-800 truncate">{item.description}</p>
+                                    <p className="text-[10px] text-gray-500">{item.locationFound} • {new Date(item.dateFound).toLocaleDateString()}</p>
+                                 </div>
+                                 <LinkIcon size={16} className="text-gray-200 group-hover:text-blue-500" />
+                              </div>
+                            ))
+                          )}
+                       </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-center justify-between animate-fadeIn">
+                     <div className="flex items-center gap-3">
+                        <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600">
+                           <Package size={20} />
+                        </div>
+                        <div>
+                           <p className="text-xs font-bold text-emerald-700">ITEM SELECIONADO</p>
+                           <p className="font-bold text-gray-900">#{linkedItem.id} - {linkedItem.description}</p>
+                        </div>
+                     </div>
+                     <button onClick={() => setLinkedItem(null)} className="text-xs text-emerald-600 hover:text-red-500 font-bold uppercase underline">Alterar</button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h4 className="font-bold text-gray-700 mb-2 text-sm">Histórico / Log</h4>
-              <div className="space-y-2 max-h-40 overflow-y-auto">
+              <h4 className="font-bold text-gray-700 mb-2 text-sm flex items-center gap-2">
+                {/* FileText is now correctly imported */}
+                <FileText size={16} className="text-gray-400" /> Histórico / Log
+              </h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
                 {viewingReport.history.map((h, i) => (
-                  <div key={i} className="text-xs border-l-2 border-gray-300 pl-2">
-                    <span className="text-gray-500">{new Date(h.date).toLocaleString()}:</span> <span className="text-gray-800">{h.note}</span>
-                    {h.user && <span className="block text-[10px] text-gray-400">Por: {h.user}</span>}
+                  <div key={i} className="text-xs border-l-2 border-gray-300 pl-2 py-1">
+                    <span className="text-gray-500 font-medium">{new Date(h.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}:</span> <span className="text-gray-800">{h.note}</span>
+                    {h.user && <span className="block text-[10px] text-gray-400 mt-0.5 font-mono">Por: {h.user}</span>}
                   </div>
                 ))}
               </div>
-              <div className="mt-3 flex gap-2">
-                 <input id="newNote" className="flex-1 text-sm border rounded px-2 py-1" placeholder="Adicionar observação..." />
+              <div className="mt-4 flex gap-2">
+                 <input id="newNote" className="flex-1 text-sm border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-gray-300" placeholder="Adicionar observação..." onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                       const el = e.currentTarget;
+                       addNote(el.value);
+                       el.value = '';
+                    }
+                 }} />
                  <button 
                   onClick={() => {
                     const el = document.getElementById('newNote') as HTMLInputElement;
                     addNote(el.value);
                     el.value = '';
                   }}
-                  className="bg-gray-200 px-3 py-1 rounded text-xs font-bold hover:bg-gray-300"
+                  className="bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-colors"
                 >Add</button>
               </div>
             </div>
@@ -353,9 +499,20 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, onUpdate, use
               )}
 
               <div className="flex gap-2">
-                <button onClick={() => setViewingReport(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">Fechar</button>
-                {viewingReport.status !== ReportStatus.RESOLVED && (
-                  <button onClick={() => changeStatus(ReportStatus.RESOLVED)} className="flex items-center gap-2 px-4 py-2 bg-ifrn-green text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"><CheckCircle size={16} /> Marcar Resolvido</button>
+                <button onClick={closeModals} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">Fechar</button>
+                
+                {linkedItem ? (
+                   <button 
+                    onClick={handleLinkItemAndResolve} 
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-lg shadow-emerald-200 transition-all scale-105"
+                   >
+                     {isLoading ? <Loader2 className="animate-spin" size={16} /> : <><CornerUpRight size={18} /> Confirmar Devolução e Resolver</>}
+                   </button>
+                ) : (
+                  viewingReport.status !== ReportStatus.RESOLVED && (
+                    <button onClick={() => changeStatus(ReportStatus.RESOLVED)} className="flex items-center gap-2 px-4 py-2 bg-ifrn-green text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"><CheckCircle size={16} /> Marcar Resolvido</button>
+                  )
                 )}
                 
                 {viewingReport.status === ReportStatus.RESOLVED && (user.level === UserLevel.ADMIN || user.level === UserLevel.ADVANCED) && (

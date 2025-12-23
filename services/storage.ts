@@ -158,11 +158,6 @@ export const StorageService = {
   },
 
   importPeople: async (people: Person[]) => {
-    // Supabase permite insert de array
-    // Filtra duplicatas locais antes de enviar ou usa onConflict (mas id é uuid, matricula é unique)
-    // Vamos fazer um insert "ignore" based on matricula se possível, ou loop.
-    // Para simplificar, vamos inserir um por um ou em batch e ignorar erros de constraint unique
-    
     // Buscar matrículas existentes para não tentar inserir
     const { data: existing } = await supabase.from('people').select('matricula');
     const existingMats = new Set(existing?.map(p => p.matricula));
@@ -189,16 +184,11 @@ export const StorageService = {
       return [];
     }
     
-    // Map snake_case to camelCase manually if needed, or rely on TS checks
-    // Supabase returns keys as columns in DB. If DB columns are snake_case, we need map.
-    // My provided SQL used snake_case for DB columns.
-    
     return data.map((d: any) => ({
       id: d.id,
       description: d.description,
       detailedDescription: d.detailed_description,
       locationFound: d.location_found,
-      location_stored: d.location_stored, // Fix if db uses snake_case return
       locationStored: d.location_stored,
       dateFound: d.date_found,
       dateRegistered: d.date_registered,
@@ -211,7 +201,6 @@ export const StorageService = {
 
   saveItem: async (item: FoundItem, actionDescription?: string, actorName: string = 'Sistema') => {
     try {
-      // Se ID for 0, é create
       const isNew = item.id === 0;
 
       const newHistoryEntry = {
@@ -222,7 +211,6 @@ export const StorageService = {
 
       let history = [];
       if (!isNew) {
-         // Fetch current history
          const { data } = await supabase.from('items').select('history').eq('id', item.id).single();
          history = data?.history || [];
       }
@@ -245,8 +233,6 @@ export const StorageService = {
       let error = null;
 
       if (isNew) {
-        // CORREÇÃO: Deixar o banco gerar o ID automaticamente.
-        // Tentar inserir um ID manualmente em uma coluna IDENTITY GENERATED ALWAYS causa erro.
         const res = await supabase.from('items').insert(payload);
         error = res.error;
       } else {
@@ -268,11 +254,10 @@ export const StorageService = {
   },
 
   deleteAllItems: async () => {
-    // Tenta usar a RPC 'admin_clear_items_only' se existir para resetar o ID
     const { error } = await supabase.rpc('admin_clear_items_only');
 
     if (error) {
-       console.warn("RPC admin_clear_items_only não disponível. Usando fallback DELETE normal (IDs não resetam). Rode o script de reparo.");
+       console.warn("RPC admin_clear_items_only não disponível. Usando fallback DELETE normal.");
        await supabase.from('items').delete().gt('id', -1);
     }
   },
@@ -320,21 +305,18 @@ export const StorageService = {
     await supabase.from('reports').delete().neq('id', '0');
   },
 
-  // Auth Simulation (Using custom table, not Gotrue/Supabase Auth to keep logic simple)
-  // NOTA: Para total conformidade RLS, migrar para supabase.auth.signInWithPassword()
   login: async (matricula: string, pass: string): Promise<User | null> => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('matricula', matricula)
-      .eq('password', pass) // Note: In production, compare Hash
+      .eq('password', pass)
       .single();
 
     if (error || !data) return null;
     return data as User;
   },
 
-  // Persist Session (Local Storage for Client Session Persistence Only)
   setSessionUser: (user: User) => {
     localStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
     StorageService.updateLastActive();
@@ -365,24 +347,16 @@ export const StorageService = {
   },
 
   factoryReset: async (currentAdminId: string) => {
-     // Warning: This destroys DB data
-     
-     // 1. Tenta usar a Stored Procedure (RPC) 'admin_reset_db' se existir.
-     // Essa função roda no servidor e faz TRUNCATE RESTART IDENTITY, que reseta o ID para 1.
      const { error } = await supabase.rpc('admin_reset_db');
 
      if (error) {
-       console.warn("RPC admin_reset_db não disponível. Usando fallback lento (IDs não serão resetados). Rode o script de reparo no Supabase.");
-       // Fallback manual (mais lento e não reseta contador de ID)
+       console.warn("RPC admin_reset_db não disponível.");
        await StorageService.deleteAllItems();
        await StorageService.deleteAllReports();
        await StorageService.deleteAllPeople();
      }
      
-     // Apaga todos os usuários MENOS o admin que está fazendo o reset
      await StorageService.deleteAllUsers(currentAdminId);
-     
-     // Limpa o local storage
      localStorage.clear();
   }
 };
