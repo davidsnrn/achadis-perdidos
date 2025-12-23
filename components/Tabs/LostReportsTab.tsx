@@ -1,8 +1,6 @@
-
 import React, { useState, useMemo } from 'react';
 import { LostReport, ReportStatus, Person, PersonType, User, UserLevel, FoundItem, ItemStatus } from '../../types';
 import { StorageService } from '../../services/storage';
-// Add FileText to imports from lucide-react
 import { Search, Send, Clock, CheckCircle, User as UserIcon, Trash2, AlertTriangle, RotateCcw, Loader2, Link as LinkIcon, Package, X, CornerUpRight, FileText } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
@@ -456,7 +454,6 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, items, onUpda
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <h4 className="font-bold text-gray-700 mb-2 text-sm flex items-center gap-2">
-                {/* FileText is now correctly imported */}
                 <FileText size={16} className="text-gray-400" /> Histórico / Log
               </h4>
               <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
@@ -467,23 +464,36 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, items, onUpda
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex gap-2">
-                 <input id="newNote" className="flex-1 text-sm border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-gray-300" placeholder="Adicionar observação..." onKeyDown={e => {
-                    if (e.key === 'Enter') {
-                       const el = e.currentTarget;
-                       addNote(el.value);
-                       el.value = '';
-                    }
-                 }} />
-                 <button 
-                  onClick={() => {
-                    const el = document.getElementById('newNote') as HTMLInputElement;
-                    addNote(el.value);
-                    el.value = '';
-                  }}
-                  className="bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-colors"
-                >Add</button>
-              </div>
+              
+              {/* ÁREA DE COMENTÁRIOS - DESABILITADA SE RESOLVIDO */}
+              {viewingReport.status !== ReportStatus.RESOLVED ? (
+                <div className="mt-4 flex gap-2 animate-fadeIn">
+                   <input 
+                    id="newNote" 
+                    className="flex-1 text-sm border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-gray-300" 
+                    placeholder="Adicionar observação..." 
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                         const el = e.currentTarget;
+                         addNote(el.value);
+                         el.value = '';
+                      }
+                    }} 
+                   />
+                   <button 
+                    onClick={() => {
+                      const el = document.getElementById('newNote') as HTMLInputElement;
+                      addNote(el.value);
+                      el.value = '';
+                    }}
+                    className="bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-colors"
+                  >Add</button>
+                </div>
+              ) : (
+                <div className="mt-4 p-2 bg-gray-100 text-gray-500 text-xs italic rounded text-center border border-dashed border-gray-300">
+                  Relato encerrado. Novas observações não são permitidas.
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t">
