@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Locker, ViewType, LockerStatus, LoanData, MaintenanceData, Student } from '../../types-armarios';
-import { Person, PersonType } from '../../types';
+import { Person, PersonType, UserLevel } from '../../types';
 import { TOTAL_LOCKERS, generateInitialLockers } from '../../constants-armarios';
 import { StorageService } from '../../services/storage';
 import StatCard from '../armarios/StatCard';
@@ -35,6 +35,8 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  const isAdmin = user?.level === UserLevel.ADMIN;
 
   const refreshLockers = async () => {
     setLoading(true);
@@ -72,6 +74,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
   }, [lockers]);
 
   const handleImportLockers = async (newData: Locker[]) => {
+    if (!isAdmin) return;
     setLoading(true);
     try {
       await StorageService.saveLockers(newData);
@@ -313,7 +316,9 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
         <div className="flex gap-2">
           <button onClick={() => setCurrentView('dashboard')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${currentView === 'dashboard' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}>Painel</button>
           <button onClick={() => setCurrentView('search')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${currentView === 'search' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}>Pesquisar Aluno</button>
-          <button onClick={() => setCurrentView('import')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${currentView === 'import' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 border border-slate-100'}`}>Importar</button>
+          {isAdmin && (
+            <button onClick={() => setCurrentView('import')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${currentView === 'import' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 border border-slate-100'}`}>Importar</button>
+          )}
         </div>
       </div>
 
@@ -389,7 +394,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
           />
         )}
 
-        {currentView === 'import' && (
+        {currentView === 'import' && isAdmin && (
           <CSVImport onImportLockers={handleImportLockers} onCancel={() => setCurrentView('dashboard')} />
         )}
 
