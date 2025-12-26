@@ -67,27 +67,41 @@ CREATE TABLE IF NOT EXISTS public.config (
     campus text DEFAULT 'NOVA CRUZ'
 );
 
--- 6. HABILITAR SEGURANÇA (RLS)
+-- 6. TABELA DE ARMÁRIOS
+CREATE TABLE IF NOT EXISTS public.lockers (
+    number integer PRIMARY KEY,
+    status text NOT NULL DEFAULT 'Disponível',
+    location text NOT NULL,
+    current_loan jsonb,
+    maintenance_record jsonb,
+    loan_history jsonb DEFAULT '[]'::jsonb,
+    maintenance_history jsonb DEFAULT '[]'::jsonb
+);
+
+-- 7. HABILITAR SEGURANÇA (RLS)
 ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.people ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lockers ENABLE ROW LEVEL SECURITY;
 
--- 7. POLÍTICAS DE ACESSO (PERMISSIVO PARA ANON)
+-- 8. POLÍTICAS DE ACESSO (PERMISSIVO PARA ANON)
 DROP POLICY IF EXISTS "Acesso Total" ON public.items;
 DROP POLICY IF EXISTS "Acesso Total" ON public.reports;
 DROP POLICY IF EXISTS "Acesso Total" ON public.people;
 DROP POLICY IF EXISTS "Acesso Total" ON public.users;
 DROP POLICY IF EXISTS "Acesso Total" ON public.config;
+DROP POLICY IF EXISTS "Acesso Total" ON public.lockers;
 
 CREATE POLICY "Acesso Total" ON public.items FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso Total" ON public.reports FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso Total" ON public.people FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso Total" ON public.users FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso Total" ON public.config FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso Total" ON public.lockers FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
--- 8. FUNÇÕES ADMINISTRATIVAS (RPC)
+-- 9. FUNÇÕES ADMINISTRATIVAS (RPC)
 CREATE OR REPLACE FUNCTION admin_reset_db()
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN

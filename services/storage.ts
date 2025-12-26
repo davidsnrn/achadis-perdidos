@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { FoundItem, ItemStatus, LostReport, Person, PersonType, ReportStatus, User, UserLevel } from "../types";
+import { Locker, LockerStatus } from "../types-armarios";
 
 // Configuração do Supabase
 // NOTA DE SEGURANÇA: Utilize apenas a chave pública (anon key) aqui. Nunca a service_role.
@@ -25,7 +26,7 @@ export const StorageService = {
   saveConfig: async (sector: string, campus: string) => {
     // Tenta atualizar o primeiro registro, se não existir, cria
     const { data } = await supabase.from('config').select('id').limit(1);
-    
+
     if (data && data.length > 0) {
       await supabase.from('config').update({ sector, campus }).eq('id', data[0].id);
     } else {
@@ -42,7 +43,7 @@ export const StorageService = {
     }
     return data || [];
   },
-  
+
   saveUser: async (user: User, actorName: string) => {
     // Check duplication (exceto o próprio usuário)
     const { data: existing } = await supabase
@@ -56,7 +57,7 @@ export const StorageService = {
     }
 
     const dateStr = new Date().toLocaleString('pt-BR');
-    
+
     // Check if updating or creating
     const { data: currentUser } = await supabase.from('users').select('*').eq('id', user.id).single();
 
@@ -64,7 +65,7 @@ export const StorageService = {
       // Update
       const logMessage = `Editado por ${actorName} em ${dateStr}.`;
       const updatedLogs = [...(currentUser.logs || []), logMessage];
-      
+
       const { error } = await supabase.from('users').update({
         matricula: user.matricula,
         name: user.name,
@@ -72,13 +73,13 @@ export const StorageService = {
         password: user.password, // Em prod, não atualize senha aqui sem hash
         logs: updatedLogs
       }).eq('id', user.id);
-      
+
       if (error) throw error;
     } else {
       // Create
       const password = user.password || 'ifrn123';
       const logMessage = `Criado por ${actorName} em ${dateStr} com senha padrão.`;
-      
+
       const { error } = await supabase.from('users').insert({
         id: user.id,
         matricula: user.matricula,
@@ -102,7 +103,7 @@ export const StorageService = {
 
   changePassword: async (userId: string, newPass: string, actorName: string): Promise<User | null> => {
     const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
-    
+
     if (user) {
       const dateStr = new Date().toLocaleString('pt-BR');
       const log = `Senha alterada pelo próprio usuário em ${dateStr}.`;
@@ -114,12 +115,12 @@ export const StorageService = {
         .eq('id', userId)
         .select()
         .single();
-        
+
       if (!error) return data as User;
     }
     return null;
   },
-  
+
   // People
   getPeople: async (): Promise<Person[]> => {
     const { data, error } = await supabase.from('people').select('*');
@@ -161,12 +162,12 @@ export const StorageService = {
     // Buscar matrículas existentes para não tentar inserir
     const { data: existing } = await supabase.from('people').select('matricula');
     const existingMats = new Set(existing?.map(p => p.matricula));
-    
+
     const toInsert = people.filter(p => !existingMats.has(p.matricula)).map(p => ({
-       id: p.id,
-       matricula: p.matricula,
-       name: p.name,
-       type: p.type
+      id: p.id,
+      matricula: p.matricula,
+      name: p.name,
+      type: p.type
     }));
 
     if (toInsert.length > 0) {
@@ -178,12 +179,12 @@ export const StorageService = {
   // Items
   getItems: async (): Promise<FoundItem[]> => {
     const { data, error } = await supabase.from('items').select('*').order('id', { ascending: false });
-    
+
     if (error) {
       console.error("Erro ao buscar itens:", error);
       return [];
     }
-    
+
     return data.map((d: any) => ({
       id: d.id,
       description: d.description,
@@ -211,10 +212,10 @@ export const StorageService = {
 
       let history = [];
       if (!isNew) {
-         const { data } = await supabase.from('items').select('history').eq('id', item.id).single();
-         history = data?.history || [];
+        const { data } = await supabase.from('items').select('history').eq('id', item.id).single();
+        history = data?.history || [];
       }
-      
+
       history.push(newHistoryEntry);
 
       const payload = {
@@ -257,11 +258,11 @@ export const StorageService = {
     const { error } = await supabase.rpc('admin_clear_items_only');
 
     if (error) {
-       console.warn("RPC admin_clear_items_only não disponível. Usando fallback DELETE normal.");
-       await supabase.from('items').delete().gt('id', -1);
+      console.warn("RPC admin_clear_items_only não disponível. Usando fallback DELETE normal.");
+      await supabase.from('items').delete().gt('id', -1);
     }
   },
-  
+
   // Reports
   getReports: async (): Promise<LostReport[]> => {
     const { data, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
@@ -305,6 +306,48 @@ export const StorageService = {
     await supabase.from('reports').delete().neq('id', '0');
   },
 
+  // Lockers
+  getLockers: async (): Promise<Locker[]> => {
+    const { data, error } = await supabase.from('lockers').select('*').order('number', { ascending: true });
+    if (error) return [];
+    return data.map((d: any) => ({
+      number: d.number,
+      status: d.status as LockerStatus,
+      currentLoan: d.current_loan,
+      maintenanceRecord: d.maintenance_record,
+      loanHistory: d.loan_history || [],
+      maintenanceHistory: d.maintenance_history || [],
+      location: d.location
+    }));
+  },
+
+  saveLockers: async (lockers: Locker[]) => {
+    const payload = lockers.map(l => ({
+      number: l.number,
+      status: l.status,
+      current_loan: l.currentLoan,
+      maintenance_record: l.maintenanceRecord,
+      loan_history: l.loanHistory,
+      maintenance_history: l.maintenanceHistory,
+      location: l.location
+    }));
+    const { error } = await supabase.from('lockers').upsert(payload);
+    if (error) throw error;
+  },
+
+  updateSingleLocker: async (locker: Locker) => {
+    const payload = {
+      status: locker.status,
+      current_loan: locker.currentLoan,
+      maintenance_record: locker.maintenanceRecord,
+      loan_history: locker.loanHistory,
+      maintenance_history: locker.maintenanceHistory,
+      location: locker.location
+    };
+    const { error } = await supabase.from('lockers').update(payload).eq('number', locker.number);
+    if (error) throw error;
+  },
+
   login: async (matricula: string, pass: string): Promise<User | null> => {
     const { data, error } = await supabase
       .from('users')
@@ -339,24 +382,46 @@ export const StorageService = {
   isSessionExpired: (): boolean => {
     const lastActive = localStorage.getItem(LAST_ACTIVE_KEY);
     if (!lastActive) return true;
-    
+
     const now = Date.now();
     const last = parseInt(lastActive, 10);
-    
+
     return (now - last) > TIMEOUT_MS;
   },
 
   factoryReset: async (currentAdminId: string) => {
-     const { error } = await supabase.rpc('admin_reset_db');
+    const { error } = await supabase.rpc('admin_reset_db');
 
-     if (error) {
-       console.warn("RPC admin_reset_db não disponível.");
-       await StorageService.deleteAllItems();
-       await StorageService.deleteAllReports();
-       await StorageService.deleteAllPeople();
-     }
-     
-     await StorageService.deleteAllUsers(currentAdminId);
-     localStorage.clear();
+    if (error) {
+      console.warn("RPC admin_reset_db não disponível.");
+      await StorageService.deleteAllItems();
+      await StorageService.deleteAllReports();
+      await StorageService.deleteAllPeople();
+    }
+
+    await StorageService.deleteAllUsers(currentAdminId);
+    localStorage.clear();
+  },
+
+  getBackupData: async () => {
+    const [config, users, people, items, reports, lockers] = await Promise.all([
+      supabase.from('config').select('*'),
+      supabase.from('users').select('*'),
+      supabase.from('people').select('*'),
+      supabase.from('items').select('*'),
+      supabase.from('reports').select('*'),
+      supabase.from('lockers').select('*')
+    ]);
+
+    return {
+      config: config.data || [],
+      users: users.data || [],
+      people: people.data || [],
+      items: items.data || [],
+      reports: reports.data || [],
+      lockers: lockers.data || [],
+      exportDate: new Date().toISOString(),
+      version: '1.0'
+    };
   }
 };
