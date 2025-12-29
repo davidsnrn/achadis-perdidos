@@ -24,13 +24,34 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
   const [isPickingLocker, setIsPickingLocker] = useState(false);
 
   const searchResults = useMemo(() => {
-    const terms = searchTerm.toLowerCase().split(' ').filter(t => t.length > 0);
-    if (terms.length === 0) return [];
+    // Separa por vírgula para verificar busca múltipla exata por matrícula
+    const commaSeparated = searchTerm.split(',').map(t => t.trim()).filter(t => t.length > 0);
+
+    // Normalização para busca de texto (nome, curso, etc)
+    const normalizedSearch = searchTerm
+      .normalize('NFD') // Decompõe caracteres acentuados
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacríticos
+      .toLowerCase();
+
+    const terms = normalizedSearch.split(' ').filter(t => t.length > 0);
+
+    if (terms.length === 0 && commaSeparated.length === 0) return [];
 
     return students.filter(s => {
-      const studentStr = `${s.registration} ${s.name} ${s.course}`.toLowerCase();
+      // 1. Busca por múltiplas matrículas exatas (separadas por vírgula)
+      if (commaSeparated.length > 1 || (commaSeparated.length === 1 && /^\d+$/.test(commaSeparated[0]))) {
+        const matchesMatricula = commaSeparated.some(matricula => s.registration.includes(matricula));
+        if (matchesMatricula) return true;
+      }
+
+      // 2. Busca textual normalizada (nome, curso, matrícula simples)
+      const studentStr = `${s.registration} ${s.name} ${s.course}`
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
       return terms.every(term => studentStr.includes(term));
-    }).slice(0, 15);
+    }).slice(0, 50); // Aumentei um pouco o limite caso busque muitas matrículas
   }, [searchTerm, students]);
 
   const getStudentHistory = (registration: string) => {

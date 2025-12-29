@@ -40,11 +40,20 @@ const LockerForm: React.FC<LockerFormProps> = ({ selectedLocker, students, onSub
   }, []);
 
   const searchResults = useMemo(() => {
-    const terms = studentSearch.toLowerCase().split(' ').filter(t => t.length > 0);
+    const normalizedSearch = studentSearch
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    const terms = normalizedSearch.split(' ').filter(t => t.length > 0);
     if (terms.length === 0) return [];
 
     return students.filter(s => {
-      const studentStr = `${s.registration} ${s.name} ${s.course} `.toLowerCase();
+      const studentStr = `${s.registration} ${s.name} ${s.course} `
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
       return terms.every(term => studentStr.includes(term));
     }).slice(0, 8);
   }, [studentSearch, students]);
