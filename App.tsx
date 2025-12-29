@@ -94,20 +94,8 @@ const App: React.FC = () => {
 
   const loadSystemConfig = useCallback(async () => {
     const config = await StorageService.getConfig();
-
-    // Migração automática se vier com o padrão antigo
-    if (config.sector.includes('COADES') || config.sector.includes('COAPAC') || config.campus === 'NOVA CRUZ') {
-      // Se for o antigo, forçamos o novo visual, mas não salvamos automaticamente para não ser invasivo no DB sem ação do usuário
-      // Ou podemos salvar? O usuário pediu para corrigir. Vamos forçar o estado local para o novo.
-      setSystemSector('SIADES');
-      setSystemCampus('Sistema de Administração Escolar');
-
-      // Opcional: Atualizar no banco silenciosamente para persistir a correção
-      StorageService.saveConfig('SIADES', 'Sistema de Administração Escolar');
-    } else {
-      setSystemSector(config.sector);
-      setSystemCampus(config.campus);
-    }
+    setSystemSector(config.sector);
+    setSystemCampus(config.campus);
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -357,7 +345,7 @@ const App: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
           <div className="bg-gray-50 p-8 flex flex-col items-center border-b border-gray-100">
-            <IfrnLogo className="mb-2" sector="SIADES" campus="Sistema de Administração Escolar" boldSubtext />
+            <IfrnLogo className="mb-2" sector={systemSector} campus={systemCampus} boldSubtext />
           </div>
           <div className="p-8">
             <h2 className="text-xl font-bold text-gray-800 text-center mb-6">Acesso ao Sistema</h2>

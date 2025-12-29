@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
-import { Locker, LoanData } from '../../types-armarios';
-import { Search, Calendar, FileText, Download } from 'lucide-react';
+import { Locker } from '../../types-armarios';
+import { Search, Calendar, FileText } from 'lucide-react';
 
 interface ReportsTabProps {
     lockers: Locker[];
@@ -17,14 +17,25 @@ interface ReportEntry {
 }
 
 const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
-    const [dateFilter, setDateFilter] = useState('');
+    const [dateFilterType, setDateFilterType] = useState<'all' | 'today' | 'week' | 'custom'>('all');
+    const [customDate, setCustomDate] = useState('');
     const [studentFilter, setStudentFilter] = useState('');
 
     const reportData = useMemo(() => {
         const entries: ReportEntry[] = [];
 
+        const getLocalDate = (dateStr: string) => {
+            const [d, m, y] = dateStr.split('/');
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        };
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+
         lockers.forEach(locker => {
-            // Current Loans if it has no return date (active) or if it exists
             if (locker.currentLoan) {
                 entries.push({
                     lockerNumber: locker.number,
@@ -36,9 +47,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                 });
             }
 
-            // Past history
             locker.loanHistory.forEach(loan => {
-                // Loan action
                 entries.push({
                     lockerNumber: locker.number,
                     registration: loan.registrationNumber,
@@ -47,8 +56,6 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                     actionType: 'Empréstimo',
                     actionDate: loan.loanDate
                 });
-
-                // Return action
                 if (loan.returnDate) {
                     entries.push({
                         lockerNumber: locker.number,
@@ -62,32 +69,32 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
             });
         });
 
-        // Filtering
         return entries.filter(entry => {
-            let match = true;
-            if (dateFilter) {
-                // Assume dateFilter is YYYY-MM-DD from input[type=date]
-                // Assume actionDate is DD/MM/YYYY
-                const [year, month, day] = dateFilter.split('-');
-                const formattedFilterDate = `${day}/${month}/${year}`;
-                if (entry.actionDate !== formattedFilterDate) match = false;
+            const entryDate = getLocalDate(entry.actionDate);
+
+            if (dateFilterType === 'today') {
+                if (entryDate.getTime() !== today.getTime()) return false;
+            } else if (dateFilterType === 'week') {
+                if (entryDate < startOfWeek) return false;
+            } else if (dateFilterType === 'custom' && customDate) {
+                const [y, m, d] = customDate.split('-');
+                const cDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                if (entryDate.getTime() !== cDate.getTime()) return false;
             }
+
             if (studentFilter) {
                 const query = studentFilter.toLowerCase();
                 if (!entry.studentName.toLowerCase().includes(query) && !entry.registration.toLowerCase().includes(query)) {
-                    match = false;
+                    return false;
                 }
             }
-            return match;
+            return true;
         }).sort((a, b) => {
-            // Sort by date desc (naive DD/MM/YYYY sort)
-            const partsA = a.actionDate.split('/');
-            const partsB = b.actionDate.split('/');
-            const dateA = new Date(parseInt(partsA[2]), parseInt(partsA[1]) - 1, parseInt(partsA[0])).getTime();
-            const dateB = new Date(parseInt(partsB[2]), parseInt(partsB[1]) - 1, parseInt(partsB[0])).getTime();
+            const dateA = getLocalDate(a.actionDate).getTime();
+            const dateB = getLocalDate(b.actionDate).getTime();
             return dateB - dateA;
         });
-    }, [lockers, dateFilter, studentFilter]);
+    }, [lockers, dateFilterType, customDate, studentFilter]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -95,15 +102,39 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                 <div className="flex flex-col md:flex-row gap-4 items-end mb-8">
                     <div className="flex-1 space-y-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
-                            <Calendar size={12} /> Data da Ação
+                            <Calendar size={12} /> Período
                         </label>
-                        <input
-                            type="date"
-                            value={dateFilter}
-                            onChange={(e) => setDateFilter(e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        />
+                        <div className="relative">
+                            <select
+                                value={dateFilterType}
+                                onChange={(e) => setDateFilterType(e.target.value as any)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 transition-all appearance-none"
+                            >
+                                <option value="all">Todo o histórico</option>
+                                <option value="today">Hoje</option>
+                                <option value="week">Esta semana</option>
+                                <option value="custom">Data personalizada</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </div>
                     </div>
+
+                    {dateFilterType === 'custom' && (
+                        <div className="flex-1 space-y-1 animate-slideInLeft">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
+                                <Calendar size={12} /> Escolher Data
+                            </label>
+                            <input
+                                type="date"
+                                value={customDate}
+                                onChange={(e) => setCustomDate(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                            />
+                        </div>
+                    )}
+
                     <div className="flex-[2] space-y-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
                             <Search size={12} /> Aluno (Nome ou Matrícula)
@@ -117,7 +148,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                         />
                     </div>
                     <button
-                        onClick={() => { setDateFilter(''); setStudentFilter(''); }}
+                        onClick={() => { setDateFilterType('all'); setCustomDate(''); setStudentFilter(''); }}
                         className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
                     >
                         Limpar

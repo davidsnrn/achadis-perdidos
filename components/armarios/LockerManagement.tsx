@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Locker, LockerStatus } from '../../types-armarios';
-import { Building2, Layers, Hash, Plus, AlertCircle, Save } from 'lucide-react';
+import { Building2, Layers, Hash, Plus, AlertCircle } from 'lucide-react';
 
 interface LockerManagementProps {
     onGenerate: (newLockers: Locker[]) => void;
@@ -13,6 +13,18 @@ const LockerManagement: React.FC<LockerManagementProps> = ({ onGenerate, existin
     const [groupName, setGroupName] = useState('');
     const [startNumber, setStartNumber] = useState(1);
     const [endNumber, setEndNumber] = useState(40);
+
+    const suggestBlocks = useMemo(() => {
+        const blocks = new Set<string>();
+        existingLockers.forEach(l => {
+            if (l.location && l.location.includes(' - ')) {
+                blocks.add(l.location.split(' - ')[0]);
+            } else if (l.location) {
+                blocks.add(l.location);
+            }
+        });
+        return Array.from(blocks);
+    }, [existingLockers]);
 
     const handleGenerate = () => {
         if (!blockName.trim() || !groupName.trim()) {
@@ -32,13 +44,11 @@ const LockerManagement: React.FC<LockerManagementProps> = ({ onGenerate, existin
             const existing = existingLockers.find(l => l.number === i);
 
             if (existing) {
-                // Se já existe, mantemos o status e o histórico, mas atualizamos a localização
                 newLockers.push({
                     ...existing,
                     location: location
                 });
             } else {
-                // Novo armário
                 newLockers.push({
                     number: i,
                     status: LockerStatus.AVAILABLE,
@@ -74,12 +84,16 @@ const LockerManagement: React.FC<LockerManagementProps> = ({ onGenerate, existin
                                 <Building2 size={12} /> Bloco / Prédio
                             </label>
                             <input
+                                list="blocks-list"
                                 type="text"
-                                placeholder="Ex: Bloco Principal"
+                                placeholder="Selecione ou digite..."
                                 value={blockName}
                                 onChange={(e) => setBlockName(e.target.value)}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-slate-800 transition-all"
                             />
+                            <datalist id="blocks-list">
+                                {suggestBlocks.map(b => <option key={b} value={b} />)}
+                            </datalist>
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
@@ -132,7 +146,7 @@ const LockerManagement: React.FC<LockerManagementProps> = ({ onGenerate, existin
                         onClick={handleGenerate}
                         className="w-full bg-slate-800 hover:bg-slate-900 text-white font-black py-5 rounded-[1.5rem] shadow-xl transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-widest"
                     >
-                        <Plus size={18} /> Gerar Armários Automaticamente
+                        <Plus size={18} /> Gerar / Atualizar Armários
                     </button>
                 </div>
             </div>

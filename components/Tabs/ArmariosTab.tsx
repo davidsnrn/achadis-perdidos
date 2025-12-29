@@ -10,7 +10,7 @@ import CSVImport from '../armarios/CSVImport';
 import StudentSearch from '../armarios/StudentSearch';
 import ReportsTab from '../armarios/ReportsTab';
 import LockerManagement from '../armarios/LockerManagement';
-import { Loader2, LayoutGrid, FileText, Settings, Key } from 'lucide-react';
+import { Loader2, LayoutGrid, FileText, Settings, Key, Plus, Download } from 'lucide-react';
 
 interface ArmariosTabProps {
   user: any; // User from Achados system
@@ -359,8 +359,8 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
           <button onClick={() => setCurrentView('reports')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'reports' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><FileText size={14} /> Relatórios</button>
           {isAdmin && (
             <>
-              <button onClick={() => setCurrentView('management')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'management' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 border border-slate-100'}`}><Settings size={14} /> Gerenciar</button>
-              <button onClick={() => setCurrentView('import')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'import' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 border border-slate-100'}`}>Importar</button>
+              <button onClick={() => setCurrentView('management')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'management' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><Plus size={14} /> Cadastro</button>
+              <button onClick={() => setCurrentView('import')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'import' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 border border-slate-100'}`}><Download size={14} /> Importar CSV</button>
             </>
           )}
         </div>
