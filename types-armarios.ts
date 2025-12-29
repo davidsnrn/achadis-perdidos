@@ -21,7 +21,7 @@ export interface LoanData {
   studentName: string; // Nome do Aluno
   studentClass: string; // Turma do Aluno
   loanDate: string; // Data do Empréstimo
-  returnDate: string; // Data da Devolução
+  returnDate?: string; // Data da Devolução
   observation: string; // Observação
 }
 
@@ -34,9 +34,9 @@ export interface Locker {
   number: number;
   status: LockerStatus;
   currentLoan?: LoanData;
-  maintenanceRecord?: MaintenanceData; 
+  maintenanceRecord?: MaintenanceData;
   loanHistory: LoanData[];
-  maintenanceHistory: MaintenanceData[]; 
+  maintenanceHistory: MaintenanceData[];
   location: string;
 }
 
