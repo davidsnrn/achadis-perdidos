@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Locker } from '../../types-armarios';
-import { Search, Calendar, FileText } from 'lucide-react';
+import { Search, Calendar, FileText, ArrowRight } from 'lucide-react';
 
 interface ReportsTabProps {
     lockers: Locker[];
@@ -18,7 +18,8 @@ interface ReportEntry {
 
 const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
     const [dateFilterType, setDateFilterType] = useState<'all' | 'today' | 'week' | 'custom'>('all');
-    const [customDate, setCustomDate] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [studentFilter, setStudentFilter] = useState('');
 
     const reportData = useMemo(() => {
@@ -76,10 +77,21 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                 if (entryDate.getTime() !== today.getTime()) return false;
             } else if (dateFilterType === 'week') {
                 if (entryDate < startOfWeek) return false;
-            } else if (dateFilterType === 'custom' && customDate) {
-                const [y, m, d] = customDate.split('-');
-                const cDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-                if (entryDate.getTime() !== cDate.getTime()) return false;
+            } else if (dateFilterType === 'custom') {
+                if (startDate) {
+                    const start = new Date(startDate);
+                    start.setHours(0, 0, 0, 0);
+                    // Native Date from input yyyy-mm-dd works fine for comparison after setHours
+                    // But to be safe with timezones, we parse manually
+                    const [sy, sm, sd] = startDate.split('-');
+                    const sDate = new Date(parseInt(sy), parseInt(sm) - 1, parseInt(sd));
+                    if (entryDate < sDate) return false;
+                }
+                if (endDate) {
+                    const [ey, em, ed] = endDate.split('-');
+                    const eDate = new Date(parseInt(ey), parseInt(em) - 1, parseInt(ed));
+                    if (entryDate > eDate) return false;
+                }
             }
 
             if (studentFilter) {
@@ -94,7 +106,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
             const dateB = getLocalDate(b.actionDate).getTime();
             return dateB - dateA;
         });
-    }, [lockers, dateFilterType, customDate, studentFilter]);
+    }, [lockers, dateFilterType, startDate, endDate, studentFilter]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -122,17 +134,30 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                     </div>
 
                     {dateFilterType === 'custom' && (
-                        <div className="flex-1 space-y-1 animate-slideInLeft">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
-                                <Calendar size={12} /> Escolher Data
-                            </label>
-                            <input
-                                type="date"
-                                value={customDate}
-                                onChange={(e) => setCustomDate(e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                            />
-                        </div>
+                        <>
+                            <div className="flex-1 space-y-1 animate-slideInLeft">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
+                                    De
+                                </label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                                />
+                            </div>
+                            <div className="flex-1 space-y-1 animate-slideInLeft">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
+                                    Até
+                                </label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                                />
+                            </div>
+                        </>
                     )}
 
                     <div className="flex-[2] space-y-1">
@@ -148,7 +173,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                         />
                     </div>
                     <button
-                        onClick={() => { setDateFilterType('all'); setCustomDate(''); setStudentFilter(''); }}
+                        onClick={() => { setDateFilterType('all'); setStartDate(''); setEndDate(''); setStudentFilter(''); }}
                         className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
                     >
                         Limpar
