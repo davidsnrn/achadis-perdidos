@@ -24,34 +24,37 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
   const [isPickingLocker, setIsPickingLocker] = useState(false);
 
   const searchResults = useMemo(() => {
-    // Separa por vírgula para verificar busca múltipla exata por matrícula
-    const commaSeparated = searchTerm.split(',').map(t => t.trim()).filter(t => t.length > 0);
+    // 1. Quebra por vírgula para identificar múltiplos termos de busca (Lógica OR)
+    const rawSegments = searchTerm.split(',');
 
-    // Normalização para busca de texto (nome, curso, etc)
-    const normalizedSearch = searchTerm
-      .normalize('NFD') // Decompõe caracteres acentuados
-      .replace(/[\u0300-\u036f]/g, '') // Remove diacríticos
-      .toLowerCase();
+    // 2. Processa cada segmento: remove espaços extras e prepara os sub-termos (Lógica AND para palavras dentro do segmento)
+    const searchGroups = rawSegments
+      .map(segment => {
+        const normalized = segment
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
+        // Quebra por espaço dentro do segmento
+        return normalized.split(' ').filter(t => t.length > 0);
+      })
+      .filter(group => group.length > 0); // Remove grupos vazios (ex: multiplas virgulas sem texto)
 
-    const terms = normalizedSearch.split(' ').filter(t => t.length > 0);
-
-    if (terms.length === 0 && commaSeparated.length === 0) return [];
+    if (searchGroups.length === 0) return [];
 
     return students.filter(s => {
-      // 1. Busca por múltiplas matrículas exatas (separadas por vírgula)
-      if (commaSeparated.length > 1 || (commaSeparated.length === 1 && /^\d+$/.test(commaSeparated[0]))) {
-        const matchesMatricula = commaSeparated.some(matricula => s.registration.includes(matricula));
-        if (matchesMatricula) return true;
-      }
-
-      // 2. Busca textual normalizada (nome, curso, matrícula simples)
+      // Prepara string do aluno uma única vez para performance
       const studentStr = `${s.registration} ${s.name} ${s.course}`
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase();
 
-      return terms.every(term => studentStr.includes(term));
-    }).slice(0, 50); // Aumentei um pouco o limite caso busque muitas matrículas
+      // O aluno é retornado se corresponder a PELO MENOS UM dos grupos de busca
+      return searchGroups.some(group => {
+        // Dentro do grupo, TODAS as palavras devem ser encontradas (ex: "João Silva" -> tem que ter João E Silva)
+        return group.every(word => studentStr.includes(word));
+      });
+    }).slice(0, 50);
   }, [searchTerm, students]);
 
   const getStudentHistory = (registration: string) => {
