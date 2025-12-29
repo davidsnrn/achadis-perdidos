@@ -21,6 +21,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [studentFilter, setStudentFilter] = useState('');
+    const [actionTypeFilter, setActionTypeFilter] = useState<'all' | 'Empréstimo' | 'Devolução'>('all');
 
     const reportData = useMemo(() => {
         const entries: ReportEntry[] = [];
@@ -72,6 +73,10 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
 
         return entries.filter(entry => {
             const entryDate = getLocalDate(entry.actionDate);
+            const isInvalidDate = isNaN(entryDate.getTime());
+
+            // Se houver algum filtro de data ativo, obrigatoriamente a data deve ser válida
+            if (dateFilterType !== 'all' && isInvalidDate) return false;
 
             if (dateFilterType === 'today') {
                 if (entryDate.getTime() !== today.getTime()) return false;
@@ -79,19 +84,19 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                 if (entryDate < startOfWeek) return false;
             } else if (dateFilterType === 'custom') {
                 if (startDate) {
-                    const start = new Date(startDate);
-                    start.setHours(0, 0, 0, 0);
-                    // Native Date from input yyyy-mm-dd works fine for comparison after setHours
-                    // But to be safe with timezones, we parse manually
                     const [sy, sm, sd] = startDate.split('-');
                     const sDate = new Date(parseInt(sy), parseInt(sm) - 1, parseInt(sd));
-                    if (entryDate < sDate) return false;
+                    if (isInvalidDate || entryDate < sDate) return false;
                 }
                 if (endDate) {
                     const [ey, em, ed] = endDate.split('-');
                     const eDate = new Date(parseInt(ey), parseInt(em) - 1, parseInt(ed));
-                    if (entryDate > eDate) return false;
+                    if (isInvalidDate || entryDate > eDate) return false;
                 }
+            }
+
+            if (actionTypeFilter !== 'all') {
+                if (entry.actionType !== actionTypeFilter) return false;
             }
 
             if (studentFilter) {
@@ -104,9 +109,14 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
         }).sort((a, b) => {
             const dateA = getLocalDate(a.actionDate).getTime();
             const dateB = getLocalDate(b.actionDate).getTime();
+
+            // Handle invalid dates in sort
+            if (isNaN(dateA)) return 1;
+            if (isNaN(dateB)) return -1;
+
             return dateB - dateA;
         });
-    }, [lockers, dateFilterType, startDate, endDate, studentFilter]);
+    }, [lockers, dateFilterType, startDate, endDate, studentFilter, actionTypeFilter]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -160,6 +170,26 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                         </>
                     )}
 
+                    <div className="flex-1 space-y-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
+                            Ação
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={actionTypeFilter}
+                                onChange={(e) => setActionTypeFilter(e.target.value as any)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-green-500 transition-all appearance-none"
+                            >
+                                <option value="all">Todos</option>
+                                <option value="Empréstimo">Empréstimo</option>
+                                <option value="Devolução">Devolução</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="flex-[2] space-y-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
                             <Search size={12} /> Aluno (Nome ou Matrícula)
@@ -173,7 +203,13 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                         />
                     </div>
                     <button
-                        onClick={() => { setDateFilterType('all'); setStartDate(''); setEndDate(''); setStudentFilter(''); }}
+                        onClick={() => {
+                            setDateFilterType('all');
+                            setStartDate('');
+                            setEndDate('');
+                            setStudentFilter('');
+                            setActionTypeFilter('all');
+                        }}
                         className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-xs font-black uppercase tracking-widest transition-all"
                     >
                         Limpar
