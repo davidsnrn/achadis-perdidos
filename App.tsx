@@ -27,8 +27,8 @@ const App: React.FC = () => {
   const [desktopDeleteOpen, setDesktopDeleteOpen] = useState(false);
 
   // System Config State
-  const [systemSector, setSystemSector] = useState('COADES');
-  const [systemCampus, setSystemCampus] = useState('NOVA CRUZ');
+  const [systemSector, setSystemSector] = useState('SIADES');
+  const [systemCampus, setSystemCampus] = useState('Sistema de Administração Escolar');
 
   // Temp State
   const [configSector, setConfigSector] = useState('');

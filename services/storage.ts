@@ -9,6 +9,14 @@ const SUPABASE_KEY = 'sb_publishable_jjl3YMTXv7Ly-LwahfI3Yw_5GZD4fpv';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const hashPassword = async (pass: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pass);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 // Session constants
 const SESSION_USER_KEY = 'coades_session_user';
 const LAST_ACTIVE_KEY = 'coades_last_active';
@@ -66,11 +74,17 @@ export const StorageService = {
       const logMessage = `Editado por ${actorName} em ${dateStr}.`;
       const updatedLogs = [...(currentUser.logs || []), logMessage];
 
+      let finalPassword = currentUser.password;
+      // If password passed and different from DB, it's a new password (e.g. reset) -> Hash it
+      if (user.password && user.password !== currentUser.password) {
+        finalPassword = await hashPassword(user.password);
+      }
+
       const { error } = await supabase.from('users').update({
         matricula: user.matricula,
         name: user.name,
         level: user.level,
-        password: user.password, // Em prod, não atualize senha aqui sem hash
+        password: finalPassword,
         logs: updatedLogs
       }).eq('id', user.id);
 
@@ -78,13 +92,14 @@ export const StorageService = {
     } else {
       // Create
       const password = user.password || 'ifrn123';
+      const hashedPassword = await hashPassword(password);
       const logMessage = `Criado por ${actorName} em ${dateStr} com senha padrão.`;
 
       const { error } = await supabase.from('users').insert({
         id: user.id,
         matricula: user.matricula,
         name: user.name,
-        password: password,
+        password: hashedPassword,
         level: user.level,
         logs: [logMessage]
       });
@@ -109,9 +124,11 @@ export const StorageService = {
       const log = `Senha alterada pelo próprio usuário em ${dateStr}.`;
       const updatedLogs = [...(user.logs || []), log];
 
+      const hashedPassword = await hashPassword(newPass);
+
       const { data, error } = await supabase
         .from('users')
-        .update({ password: newPass, logs: updatedLogs })
+        .update({ password: hashedPassword, logs: updatedLogs })
         .eq('id', userId)
         .select()
         .single();
@@ -349,15 +366,28 @@ export const StorageService = {
   },
 
   login: async (matricula: string, pass: string): Promise<User | null> => {
-    const { data, error } = await supabase
+    // Buscar usuário pela matrícula
+    const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .eq('matricula', matricula)
-      .eq('password', pass)
       .single();
 
-    if (error || !data) return null;
-    return data as User;
+    if (error || !user) return null;
+
+    // Verificar senha (Hash ou Plain Text para migração)
+    const hashedFn = await hashPassword(pass);
+
+    if (user.password === hashedFn) {
+      return user as User;
+    } else if (user.password === pass) {
+      // Migração automática de senha plana para hash
+      await supabase.from('users').update({ password: hashedFn }).eq('id', user.id);
+      user.password = hashedFn; // Atualiza objeto local
+      return user as User;
+    }
+
+    return null;
   },
 
   setSessionUser: (user: User) => {

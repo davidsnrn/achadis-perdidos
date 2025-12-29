@@ -158,28 +158,38 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 Histórico de Empréstimos
               </h4>
-              {locker.loanHistory.length > 0 ? (
+              {locker.loanHistory && locker.loanHistory.length > 0 ? (
                 <div className="space-y-6">
-                  {locker.loanHistory.map((item, idx) => (
-                    <div key={idx} className="flex flex-col gap-2 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
-                      <div className="flex justify-between items-start text-xs">
-                        <div>
-                          <p className="font-black text-slate-800 uppercase mb-0.5">{item.studentName}</p>
-                          <p className="text-slate-400 font-bold">{item.registrationNumber} • {item.studentClass}</p>
+                  {[...locker.loanHistory]
+                    .sort((a, b) => {
+                      const parseDate = (d: string) => {
+                        if (!d) return 0;
+                        const parts = d.split('/');
+                        if (parts.length !== 3) return 0;
+                        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
+                      };
+                      return parseDate(b.loanDate) - parseDate(a.loanDate);
+                    })
+                    .map((item, idx) => (
+                      <div key={idx} className="flex flex-col gap-2 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                        <div className="flex justify-between items-start text-xs">
+                          <div>
+                            <p className="font-black text-slate-800 uppercase mb-0.5">{item.studentName}</p>
+                            <p className="text-slate-400 font-bold">{item.registrationNumber} • {item.studentClass}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-slate-500 font-black mb-1 whitespace-nowrap">{item.loanDate} — {item.returnDate || '...'}</p>
+                            <span className="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase">Concluído</span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-slate-500 font-black mb-1 whitespace-nowrap">{item.loanDate} — {item.returnDate || '...'}</p>
-                          <span className="text-[9px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black uppercase">Concluído</span>
-                        </div>
+                        {item.observation && (
+                          <div className="pl-3 border-l-2 border-slate-100 py-1">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Obs:</p>
+                            <p className="text-[10px] text-slate-500 font-medium italic leading-snug">{item.observation}</p>
+                          </div>
+                        )}
                       </div>
-                      {item.observation && (
-                        <div className="pl-3 border-l-2 border-slate-100 py-1">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Obs:</p>
-                          <p className="text-[10px] text-slate-500 font-medium italic leading-snug">{item.observation}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <div className="text-center py-6">
