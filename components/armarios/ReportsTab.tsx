@@ -100,9 +100,28 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
             }
 
             if (studentFilter) {
-                const query = studentFilter.toLowerCase();
-                if (!entry.studentName.toLowerCase().includes(query) && !entry.registration.toLowerCase().includes(query)) {
-                    return false;
+                const searchGroups = studentFilter
+                    .split(',')
+                    .map(segment => segment
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase()
+                        .trim()
+                        .split(' ')
+                        .filter(t => t.length > 0)
+                    )
+                    .filter(group => group.length > 0);
+
+                if (searchGroups.length > 0) {
+                    const entryStr = `${entry.registration} ${entry.studentName} ${entry.studentClass}`
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase();
+
+                    const matches = searchGroups.some(group =>
+                        group.every(word => entryStr.includes(word))
+                    );
+                    if (!matches) return false;
                 }
             }
             return true;

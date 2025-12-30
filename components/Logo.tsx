@@ -7,7 +7,7 @@ interface LogoProps {
   boldSubtext?: boolean;
 }
 
-export const IfrnLogo: React.FC<LogoProps> = ({ className = "", sector = "SIADES", campus = "Sistema de Administração Escolar", boldSubtext = false }) => {
+export const IfrnLogo: React.FC<LogoProps> = ({ className = "", sector = "", campus = "", boldSubtext = false }) => {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* SVG Logo */}
@@ -42,7 +42,7 @@ export const IfrnLogo: React.FC<LogoProps> = ({ className = "", sector = "SIADES
       <div className="flex flex-col leading-none">
         <span className="font-bold text-xl tracking-tight text-gray-800">IFRN</span>
         <span className={`text-xs tracking-wider uppercase ${boldSubtext ? 'font-black text-gray-800' : 'font-semibold text-gray-500'}`}>
-          {sector} - {campus}
+          {sector}{sector && campus && " - "}{campus}
         </span>
       </div>
     </div>
