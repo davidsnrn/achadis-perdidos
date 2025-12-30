@@ -26,12 +26,28 @@ const TIMEOUT_MS = TIMEOUT_MINUTES * 60 * 1000;
 export const StorageService = {
   // System Config
   getConfig: async () => {
-    const { data, error } = await supabase.from('config').select('*').limit(1).single();
-    if (error || !data) return { sector: 'SIADES', campus: 'Sistema de Administração Escolar' };
-    return { sector: data.sector, campus: data.campus };
+    // Tenta carregar do cache local primeiro para evitar o "blink" ou SIADES padrão
+    const cached = localStorage.getItem('sga_system_config');
+    const defaultVal = { sector: '', campus: '' };
+
+    try {
+      const { data, error } = await supabase.from('config').select('*').limit(1).single();
+      if (!error && data) {
+        const config = { sector: data.sector, campus: data.campus };
+        localStorage.setItem('sga_system_config', JSON.stringify(config));
+        return config;
+      }
+    } catch (e) {
+      console.warn("DB Config error, using cache/default");
+    }
+
+    return cached ? JSON.parse(cached) : defaultVal;
   },
 
   saveConfig: async (sector: string, campus: string) => {
+    // Salva no cache
+    localStorage.setItem('sga_system_config', JSON.stringify({ sector, campus }));
+
     // Tenta atualizar o primeiro registro, se não existir, cria
     const { data } = await supabase.from('config').select('id').limit(1);
 
@@ -363,6 +379,21 @@ export const StorageService = {
     };
     const { error } = await supabase.from('lockers').update(payload).eq('number', locker.number);
     if (error) throw error;
+  },
+
+  clearAllLockerLoans: async () => {
+    const { data: lockers, error: fetchError } = await supabase.from('lockers').select('*');
+    if (fetchError || !lockers) throw new Error("Erro ao buscar armários para limpeza.");
+
+    const updated = lockers.map(l => ({
+      ...l,
+      status: LockerStatus.AVAILABLE,
+      current_loan: null,
+      loan_history: []
+    }));
+
+    const { error: upsertError } = await supabase.from('lockers').upsert(updated);
+    if (upsertError) throw upsertError;
   },
 
   login: async (matricula: string, pass: string): Promise<User | null> => {

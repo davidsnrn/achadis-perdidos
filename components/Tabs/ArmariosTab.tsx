@@ -10,7 +10,8 @@ import CSVImport from '../armarios/CSVImport';
 import StudentSearch from '../armarios/StudentSearch';
 import ReportsTab from '../armarios/ReportsTab';
 import LockerManagement from '../armarios/LockerManagement';
-import { Loader2, LayoutGrid, FileText, Settings, Key, Plus, Download } from 'lucide-react';
+import ExportTab from '../armarios/ExportTab';
+import { Loader2, LayoutGrid, FileText, Settings, Key, Plus, Download, FileSpreadsheet } from 'lucide-react';
 
 interface ArmariosTabProps {
   user: any; // User from Achados system
@@ -303,6 +304,20 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     }
   };
 
+  const handleClearAllLoans = async () => {
+    if (!isAdmin) return;
+    setLoading(true);
+    try {
+      await StorageService.clearAllLockerLoans();
+      await refreshLockers();
+      alert("Todos os empréstimos e históricos foram apagados com sucesso.");
+    } catch (e) {
+      alert("Erro ao limpar dados.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const toggleSection = (id: string) => {
     setCollapsedSections(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -379,6 +394,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
             <>
               <button onClick={() => setCurrentView('management')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'management' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><Plus size={14} /> Cadastro</button>
               <button onClick={() => setCurrentView('import')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'import' ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-100 border border-slate-100'}`}><Download size={14} /> Importar CSV</button>
+              <button onClick={() => setCurrentView('export')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'export' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><FileSpreadsheet size={14} /> Exportar</button>
             </>
           )}
         </div>
@@ -458,6 +474,10 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
 
         {currentView === 'reports' && (
           <ReportsTab lockers={lockers} />
+        )}
+
+        {currentView === 'export' && isAdmin && (
+          <ExportTab lockers={lockers} onClearAll={handleClearAllLoans} />
         )}
 
         {currentView === 'management' && isAdmin && (

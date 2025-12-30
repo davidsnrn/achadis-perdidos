@@ -26,9 +26,15 @@ const App: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [desktopDeleteOpen, setDesktopDeleteOpen] = useState(false);
 
-  // System Config State
-  const [systemSector, setSystemSector] = useState('SIADES');
-  const [systemCampus, setSystemCampus] = useState('Sistema de Administração Escolar');
+  // System Config State (Inicia com cache para evitar "SIADES" no refresh)
+  const [systemSector, setSystemSector] = useState(() => {
+    const cached = localStorage.getItem('sga_system_config');
+    return cached ? JSON.parse(cached).sector : '';
+  });
+  const [systemCampus, setSystemCampus] = useState(() => {
+    const cached = localStorage.getItem('sga_system_config');
+    return cached ? JSON.parse(cached).campus : '';
+  });
 
   // Temp State
   const [configSector, setConfigSector] = useState('');
