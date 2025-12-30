@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { Locker, LockerStatus } from '../../types-armarios';
+import { ExternalLink } from 'lucide-react';
 
 interface LockerDetailModalProps {
   locker: Locker;
@@ -100,7 +100,19 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                   </div>
                   <div className="col-span-1">
                     <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Matrícula</p>
-                    <p className="text-sm font-bold text-slate-800">{locker.currentLoan.registrationNumber}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-slate-800">{locker.currentLoan.registrationNumber}</p>
+                      <a
+                        href={`https://suap.ifrn.edu.br/edu/aluno/${locker.currentLoan.registrationNumber}/?tab=nada_consta`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-blue-50 text-blue-600 p-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-all border border-blue-100 flex items-center gap-1 shadow-sm"
+                        title="Verificar Nada Consta no SUAP"
+                      >
+                        <ExternalLink size={12} />
+                        <span className="text-[9px] font-black uppercase tracking-tighter">SUAP</span>
+                      </a>
+                    </div>
                   </div>
                   <div className="col-span-2 py-3 border-t border-slate-100 mt-2 flex justify-between items-center">
                     <div>
@@ -230,7 +242,17 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                           <div key={idx} className="flex flex-col gap-2 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
                             <div className="flex justify-between items-start text-xs">
                               <div className="flex-1 min-w-0">
-                                <p className="font-black text-slate-800 uppercase mb-0.5 truncate">{item.studentName}</p>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <p className="font-black text-slate-800 uppercase truncate">{item.studentName}</p>
+                                  <a
+                                    href={`https://suap.ifrn.edu.br/edu/aluno/${item.registrationNumber}/?tab=nada_consta`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[9px] font-black text-blue-600 hover:underline uppercase whitespace-nowrap"
+                                  >
+                                    SUAP
+                                  </a>
+                                </div>
                                 <p className="text-slate-400 font-bold">{item.registrationNumber} • {item.studentClass}</p>
                               </div>
                               <div className="text-right">

@@ -23,40 +23,7 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
   const [selectedNewLocker, setSelectedNewLocker] = useState<number | null>(null);
   const [isPickingLocker, setIsPickingLocker] = useState(false);
 
-  const searchResults = useMemo(() => {
-    // 1. Quebra por vírgula para identificar múltiplos termos de busca (Lógica OR)
-    const rawSegments = searchTerm.split(',');
-
-    // 2. Processa cada segmento: remove espaços extras e prepara os sub-termos (Lógica AND para palavras dentro do segmento)
-    const searchGroups = rawSegments
-      .map(segment => {
-        const normalized = segment
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .trim();
-        // Quebra por espaço dentro do segmento
-        return normalized.split(' ').filter(t => t.length > 0);
-      })
-      .filter(group => group.length > 0); // Remove grupos vazios (ex: multiplas virgulas sem texto)
-
-    if (searchGroups.length === 0) return [];
-
-    return students.filter(s => {
-      // Prepara string do aluno uma única vez para performance
-      const studentStr = `${s.registration} ${s.name} ${s.course}`
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase();
-
-      // O aluno é retornado se corresponder a PELO MENOS UM dos grupos de busca
-      return searchGroups.some(group => {
-        // Dentro do grupo, TODAS as palavras devem ser encontradas (ex: "João Silva" -> tem que ter João E Silva)
-        return group.every(word => studentStr.includes(word));
-      });
-    }).slice(0, 50);
-  }, [searchTerm, students]);
-
+  // Helper para buscar chaves do aluno
   const getStudentHistory = (registration: string) => {
     const activeLoans: LoanData[] = [];
     const pastHistory: LoanData[] = [];
@@ -75,6 +42,41 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
     return { activeLoans, pastHistory };
   };
 
+  const searchResults = useMemo(() => {
+    const rawSegments = searchTerm.split(',');
+    const searchGroups = rawSegments
+      .map(segment => {
+        const normalized = segment
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
+        return normalized.split(' ').filter(t => t.length > 0);
+      })
+      .filter(group => group.length > 0);
+
+    if (searchGroups.length === 0) return [];
+
+    return students.filter(s => {
+      const { activeLoans, pastHistory } = getStudentHistory(s.registration);
+
+      // Prepara lista de números de armários associados ao aluno com o prefixo '#'
+      const lockerNumbers = [
+        ...activeLoans.map(l => `#${l.lockerNumber}`),
+        ...pastHistory.map(l => `#${l.lockerNumber}`)
+      ];
+
+      const studentStr = `${s.registration} ${s.name} ${s.course} ${lockerNumbers.join(' ')}`
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      return searchGroups.some(group => {
+        return group.every(word => studentStr.includes(word));
+      });
+    }).slice(0, 50);
+  }, [searchTerm, students, lockers]);
+
   const openUpdateModal = (loan: LoanData) => {
     setEditingLoan(loan);
     setNewObs(loan.observation || '');
@@ -84,17 +86,12 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
 
   const handleApplyUpdate = () => {
     if (!editingLoan) return;
-
-    // Atualizar Observação
     if (newObs !== editingLoan.observation) {
       onUpdateObservation(editingLoan.lockerNumber, newObs);
     }
-
-    // Mudar Armário se selecionado
     if (selectedNewLocker && selectedNewLocker !== editingLoan.lockerNumber) {
       onChangeLocker(editingLoan.lockerNumber, selectedNewLocker);
     }
-
     setEditingLoan(null);
   };
 
@@ -114,11 +111,11 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100">
         <h2 className="text-3xl font-black text-slate-800 mb-6 tracking-tight">Consulta de Aluno</h2>
-        <p className="text-slate-500 mb-8 font-medium">Pesquise por partes do nome, matrícula ou curso para verificar pendências.</p>
+        <p className="text-slate-500 mb-8 font-medium">Pesquise por partes do nome, matrícula, curso ou número da chave (ex: #5).</p>
         <div className="relative">
           <input
             type="text"
-            placeholder="Ex: João Silva Administração..."
+            placeholder="Ex: João Silva Administração ou #26..."
             className="w-full bg-slate-50 border-4 border-slate-100 rounded-3xl p-6 text-xl font-black text-slate-800 outline-none focus:border-blue-500 transition-all shadow-inner placeholder:text-slate-300"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -212,7 +209,17 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <p className="font-black text-slate-700 uppercase text-xs">Armário #{loan.lockerNumber}</p>
-                              <p className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-tighter">Período: {loan.loanDate} — {loan.returnDate}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-tighter">Período: {loan.loanDate} — {loan.returnDate}</p>
+                                <a
+                                  href={`https://suap.ifrn.edu.br/edu/aluno/${loan.registrationNumber}/?tab=nada_consta`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[9px] font-black text-blue-600 hover:underline uppercase"
+                                >
+                                  SUAP
+                                </a>
+                              </div>
                             </div>
                             <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Devolvido</span>
                           </div>
@@ -236,7 +243,7 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
           );
         })}
 
-        {searchTerm.length >= 3 && searchResults.length === 0 && (
+        {searchTerm.length >= 2 && searchResults.length === 0 && (
           <div className="text-center py-20 bg-white rounded-[2.5rem] border-4 border-dashed border-slate-100">
             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -375,7 +382,7 @@ const StudentSearch: React.FC<StudentSearchProps> = ({
             </div>
 
             <div className="p-6 border-t border-slate-100 text-center bg-white">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total de {availableLockers.length} chaves livres para troca</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total de {lockers.filter(l => l.status === LockerStatus.AVAILABLE).length} chaves livres para troca</p>
             </div>
           </div>
         </div>

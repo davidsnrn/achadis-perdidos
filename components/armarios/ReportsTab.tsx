@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Locker } from '../../types-armarios';
 import { Search, Calendar, FileText, ArrowRight } from 'lucide-react';
@@ -75,7 +74,6 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
             const entryDate = getLocalDate(entry.actionDate);
             const isInvalidDate = isNaN(entryDate.getTime());
 
-            // Se houver algum filtro de data ativo, obrigatoriamente a data deve ser válida
             if (dateFilterType !== 'all' && isInvalidDate) return false;
 
             if (dateFilterType === 'today') {
@@ -113,7 +111,8 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                     .filter(group => group.length > 0);
 
                 if (searchGroups.length > 0) {
-                    const entryStr = `${entry.registration} ${entry.studentName} ${entry.studentClass}`
+                    // Incluímos o número do armário na string de busca para permitir busca por #número
+                    const entryStr = `${entry.registration} ${entry.studentName} ${entry.studentClass} #${entry.lockerNumber}`
                         .normalize('NFD')
                         .replace(/[\u0300-\u036f]/g, '')
                         .toLowerCase();
@@ -129,7 +128,6 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
             const dateA = getLocalDate(a.actionDate).getTime();
             const dateB = getLocalDate(b.actionDate).getTime();
 
-            // Handle invalid dates in sort
             if (isNaN(dateA)) return 1;
             if (isNaN(dateB)) return -1;
 
@@ -211,7 +209,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
 
                     <div className="flex-[2] space-y-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-2">
-                            <Search size={12} /> Aluno (Nome ou Matrícula)
+                            <Search size={12} /> Busca (Nome, Matrícula ou #Chave)
                         </label>
                         <input
                             type="text"
