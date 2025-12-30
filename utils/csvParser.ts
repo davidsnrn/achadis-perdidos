@@ -44,75 +44,63 @@ export const parseIFRNCSV = (csvText: string): Locker[] => {
   const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
   if (lines.length < 2) return [];
 
-  // Tenta detectar o separador (vírgula ou ponto-e-vírgula)
-  const firstLine = lines[0];
-  const semicolonCount = (firstLine.match(/;/g) || []).length;
-  const commaCount = (firstLine.match(/,/g) || []).length;
-  const delimiter = semicolonCount >= commaCount ? ';' : ',';
+  // Tenta detectar o separador (vírgula ou ponto-e-vírgula) percorrendo as primeiras linhas
+  let delimiter = ',';
+  for (const line of lines) {
+    const semicolonCount = (line.match(/;/g) || []).length;
+    const commaCount = (line.match(/,/g) || []).length;
+    if (semicolonCount > 0 || commaCount > 0) {
+      delimiter = semicolonCount >= commaCount ? ';' : ',';
+      break;
+    }
+  }
 
   const lockersMap: Record<number, Locker> = {};
   let lastSeenLockerNumber: number | null = null;
 
-  // Função auxiliar para converter notação científica (2,01911E+13) para string
   const formatRegistration = (reg: string) => {
     if (!reg) return "";
     reg = reg.trim();
-
-    // Se for notação científica (ex: 2,019...E+13 ou 2.019...E13)
     if (reg.toUpperCase().includes('E+') || (reg.toUpperCase().includes('E') && reg.match(/\d+E\d+/))) {
       try {
-        // Normaliza para o formato 2.019E13
         const normalized = reg.replace(',', '.').toUpperCase();
         const [base, exp] = normalized.split('E');
         const exponent = parseInt(exp.replace('+', ''), 10);
-
         if (isNaN(exponent)) return reg;
-
         const parts = base.split('.');
-        let integerPart = parts[0];
-        let fractionalPart = parts[1] || "";
-
+        const integerPart = parts[0];
+        const fractionalPart = parts[1] || "";
         if (exponent >= fractionalPart.length) {
           return integerPart + fractionalPart.padEnd(exponent, '0');
         } else {
           return integerPart + fractionalPart.substring(0, exponent);
         }
-      } catch (e) {
-        return reg;
-      }
+      } catch (e) { return reg; }
     }
     return reg;
   };
 
-  // Função para dar split respeitando aspas (campo "texto com ; aqui")
   const splitCSVLine = (text: string, delim: string) => {
     const result = [];
     let cur = "";
     let inQuotes = false;
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === delim && !inQuotes) {
-        result.push(cur);
-        cur = "";
-      } else {
-        cur += char;
-      }
+      if (char === '"') inQuotes = !inQuotes;
+      else if (char === delim && !inQuotes) { result.push(cur); cur = ""; }
+      else cur += char;
     }
     result.push(cur);
     return result;
   };
 
-  // Pula o cabeçalho se ele contiver palavras típicas de header
   let startIdx = 0;
   if (lines[0].toLowerCase().includes('armário') || lines[0].toLowerCase().includes('localização') || lines[0].toLowerCase().includes('matrícula')) {
     startIdx = 1;
   }
 
   for (let i = startIdx; i < lines.length; i++) {
-    const line = lines[i];
-    const parts = splitCSVLine(line, delimiter);
+    const parts = splitCSVLine(lines[i], delimiter);
 
     let rawNumber = parts[0]?.trim() || '';
     let location = parts[1]?.trim() || '';
@@ -123,13 +111,18 @@ export const parseIFRNCSV = (csvText: string): Locker[] => {
     let loanDateStr = parts[6]?.trim() || '';
     let returnDateStr = parts[7]?.trim() || '';
 
-    // Tratamento para quando o número do armário está vazio mas a localização tem o número
     if (rawNumber === "" && !isNaN(parseInt(location))) {
       rawNumber = location;
       location = "";
     }
 
     let lockerNum = parseInt(rawNumber);
+
+    // Sanity check: se o número for gigantesco (>1M), provavelmente é uma matrícula ignorada ou erro de coluna
+    if (!isNaN(lockerNum) && lockerNum > 1000000) {
+      continue;
+    }
+
     if (isNaN(lockerNum)) {
       if (lastSeenLockerNumber !== null) lockerNum = lastSeenLockerNumber;
       else continue;
@@ -162,10 +155,6 @@ export const parseIFRNCSV = (csvText: string): Locker[] => {
       };
 
       const isCurrent = !returnDateStr || returnDateStr.trim() === "" || returnDateStr.toLowerCase().includes('aberto');
-
-      // Se já houver um empréstimo atual, o novo vai para o histórico (a menos que o novo seja o atual e o anterior não?)
-      // Na dúvida, se já tem um currentLoan e este novo também parece current, o novo sobrescreve se for o mais recente (se tiver data?)
-      // Por simplicidade, mantemos a lógica de: o primeiro "aberto" encontrado é o atual.
       if (isCurrent && !lockersMap[lockerNum].currentLoan) {
         lockersMap[lockerNum].currentLoan = loan;
         lockersMap[lockerNum].status = LockerStatus.OCCUPIED;
@@ -175,6 +164,5 @@ export const parseIFRNCSV = (csvText: string): Locker[] => {
     }
   }
 
-  const finalLockers: Locker[] = Object.values(lockersMap);
-  return finalLockers.sort((a, b) => a.number - b.number);
+  return Object.values(lockersMap).sort((a, b) => a.number - b.number);
 };
