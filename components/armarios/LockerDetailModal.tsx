@@ -158,7 +158,11 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
 
                   <div className="col-span-2 pt-4">
                     <button
-                      onClick={() => onReturnLocker(locker.number)}
+                      onClick={() => {
+                        if (window.confirm(`Confirmar devolução da chave do armário #${locker.number}?`)) {
+                          onReturnLocker(locker.number);
+                        }
+                      }}
                       className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest"
                     >
                       Registrar Devolução da Chave
