@@ -68,7 +68,7 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                 );
 
                 if (alreadyBorrowed.length > 0) {
-                    alert(`O aluno já possui o(s) seguinte(s) livro(s) em aberto: ${alreadyBorrowed.map(b => b.title).join(', ')}`);
+                    alert(`O aluno já possui o(s) seguinte(s) livro(s) em aberto:\n${alreadyBorrowed.map(b => `- ${b.title} (Cód: ${b.code || '---'})`).join('\n')}`);
                     setIsLoading(false);
                     return;
                 }
