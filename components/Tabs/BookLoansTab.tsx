@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Book, BookLoan, BookLoanStatus, Person, User } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Search, History, CheckCircle, X, Loader2, ArrowRight, User as UserIcon, Book as BookIcon, Calendar, Clock, Undo2, Plus } from 'lucide-react';
+import { Search, History, CheckCircle, X, Loader2, ArrowRight, User as UserIcon, Book as BookIcon, Calendar, Clock, Undo2, Plus, FileText } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -22,16 +22,20 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
 
     // New Loan Form State
     const [selectedPersonId, setSelectedPersonId] = useState('');
-    const [selectedBooks, setSelectedBooks] = useState<{ id: string, title: string, status?: 'Ativo' | 'Devolvido' }[]>([]);
+    const [selectedBooks, setSelectedBooks] = useState<{ id: string, title: string, code?: string, series?: string, status?: 'Ativo' | 'Devolvido' }[]>([]);
     const [personSearch, setPersonSearch] = useState('');
     const [bookSearch, setBookSearch] = useState('');
     const [observation, setObservation] = useState('');
+
+    const [viewingLoan, setViewingLoan] = useState<BookLoan | null>(null);
 
     const handleAddBook = (book: Book) => {
         if (selectedBooks.find(b => b.id === book.id)) return;
         setSelectedBooks([...selectedBooks, {
             id: book.id,
             title: book.title,
+            code: book.code,
+            series: book.series,
             status: 'Ativo'
         }]);
     };
@@ -52,23 +56,62 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
 
         setIsLoading(true);
         try {
-            const newLoan: BookLoan = {
-                id: Math.random().toString(36).substr(2, 9),
-                personId: person.id,
-                personName: person.name,
-                books: selectedBooks.map(b => ({ ...b, status: 'Ativo' })),
-                loanedBy: user.name,
-                loanDate: new Date().toISOString(),
-                status: BookLoanStatus.ACTIVE,
-                observation,
-                history: [{
-                    action: `Empréstimo inicial: ${selectedBooks.map(b => b.title).join(', ')}`,
-                    user: user.name,
-                    timestamp: new Date().toISOString()
-                }]
-            };
+            const now = new Date().toISOString();
 
-            await StorageService.saveBookLoan(newLoan);
+            // Verificando se já existe um empréstimo ATIVO para esta pessoa
+            const existingActiveLoan = loans.find(l => l.personId === person.id && l.status === BookLoanStatus.ACTIVE);
+
+            if (existingActiveLoan) {
+                // Verificar se o aluno já possui algum dos livros selecionados (ativos)
+                const alreadyBorrowed = selectedBooks.filter(newBook =>
+                    existingActiveLoan.books.some(eb => eb.id === newBook.id && eb.status === 'Ativo')
+                );
+
+                if (alreadyBorrowed.length > 0) {
+                    alert(`O aluno já possui o(s) seguinte(s) livro(s) em aberto: ${alreadyBorrowed.map(b => b.title).join(', ')}`);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Atualizar empréstimo existente
+                const updatedLoan: BookLoan = {
+                    ...existingActiveLoan,
+                    books: [...existingActiveLoan.books, ...selectedBooks.map(b => ({ ...b, status: 'Ativo' as const }))],
+                    history: [
+                        ...(existingActiveLoan.history || []),
+                        {
+                            action: `Novos livros adicionados: ${selectedBooks.map(b => b.title).join(', ')}`,
+                            user: user.name,
+                            timestamp: now
+                        }
+                    ]
+                };
+
+                await StorageService.saveBookLoan(updatedLoan);
+                alert('Empréstimo atualizado com sucesso!');
+            } else {
+                // Criar novo empréstimo
+                const newLoan: BookLoan = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    personId: person.id,
+                    personName: person.name,
+                    personMatricula: person.matricula, // Garantindo o mapeamento da matrícula
+                    books: selectedBooks.map(b => ({ ...b, status: 'Ativo' as const })),
+                    loanedBy: user.name,
+                    loanDate: now,
+                    status: BookLoanStatus.ACTIVE,
+                    observation,
+                    history: [{
+                        action: `Empréstimo inicial: ${selectedBooks.map(b => b.title).join(', ')}`,
+                        user: user.name,
+                        timestamp: now
+                    }]
+                };
+
+                await StorageService.saveBookLoan(newLoan);
+                alert('Empréstimo realizado com sucesso!');
+            }
+
             onUpdate();
             setShowLoanModal(false);
             setSelectedPersonId('');
@@ -76,9 +119,8 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
             setPersonSearch('');
             setBookSearch('');
             setObservation('');
-            alert('Empréstimo realizado com sucesso!');
         } catch (err) {
-            alert('Erro ao realizar empréstimo.');
+            alert('Erro ao processar empréstimo.');
         } finally {
             setIsLoading(false);
         }
@@ -133,16 +175,21 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
             .toLowerCase();
     };
 
-    const filteredLoans = loans.filter(l => {
+    const enrichedLoans = loans.map(loan => {
+        if (loan.personMatricula && loan.personMatricula !== '---') return loan;
+        const person = people.find(p => p.id === loan.personId);
+        return { ...loan, personMatricula: person?.matricula || '---' };
+    });
+
+    const filteredLoans = enrichedLoans.filter(l => {
         if (!search.trim()) return true;
         const searchTerms = normalizeText(search).split(/\s+/).filter(t => t.length > 0);
-        const loanText = normalizeText(`${l.personName} ${l.books.map(b => b.title).join(' ')}`);
+        const loanText = normalizeText(`${l.personName} ${l.personMatricula || ''} ${l.books.map(b => `${b.title} ${b.code || ''}`).join(' ')}`);
         return searchTerms.every(term => loanText.includes(term));
     });
 
     const activeLoans = filteredLoans.filter(l => l.status === BookLoanStatus.ACTIVE);
     const historicalLoans = filteredLoans.filter(l => l.status === BookLoanStatus.RETURNED);
-
     const filteredPeople = people.filter(p => {
         if (!personSearch.trim()) return true;
         const searchTerms = normalizeText(personSearch).split(/\s+/).filter(t => t.length > 0);
@@ -202,7 +249,11 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                     </div>
                 ) : (
                     (activeSubTab === 'current' ? activeLoans : historicalLoans).map(loan => (
-                        <div key={loan.id} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                        <div
+                            key={loan.id}
+                            onClick={() => setViewingLoan(loan)}
+                            className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group cursor-pointer"
+                        >
                             {loan.status === BookLoanStatus.RETURNED && (
                                 <div className="absolute top-3 right-3 text-emerald-600 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded-full">
                                     <CheckCircle size={12} /> Devolvido
@@ -215,7 +266,8 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-gray-800 leading-tight">{loan.personName}</h4>
-                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{loan.personMatricula}</p>
+                                    <div className="flex items-center gap-2 text-[10px] text-gray-500 mt-1">
                                         <Calendar size={12} /> {new Date(loan.loanDate).toLocaleDateString('pt-BR')}
                                         <Clock size={12} /> {new Date(loan.loanDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
@@ -223,19 +275,26 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                             </div>
 
                             <div className="space-y-2 mb-4">
-                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Livros Emprestados:</p>
-                                <div className="flex flex-wrap gap-1.5">
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Livros Emprestados:</p>
+                                <div className="flex flex-col gap-1.5">
                                     {loan.books.map(book => (
-                                        <span key={book.id} className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs ${book.status === 'Devolvido' ? 'bg-green-50 text-green-600 border-green-100 line-through opacity-70' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>
-                                            <BookIcon size={12} /> {book.title}
-                                            {book.status === 'Devolvido' && <CheckCircle size={10} />}
-                                        </span>
+                                        <div key={book.id} className={`flex flex-col p-2 rounded-lg border text-xs ${book.status === 'Devolvido' ? 'bg-green-50 text-green-600 border-green-100 opacity-70' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-1 font-bold">
+                                                    <BookIcon size={12} /> {book.title}
+                                                </div>
+                                                {book.status === 'Devolvido' && <CheckCircle size={12} />}
+                                            </div>
+                                            <div className="text-[10px] text-gray-400 mt-0.5 ml-4">
+                                                Código: <span className="text-gray-600">{book.code || 'N/A'}</span> • Série: <span className="text-gray-600">{book.series || 'N/A'}</span>
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
 
                             {loan.observation && (
-                                <div className="mt-2 mb-4 p-2.5 bg-gray-50 rounded-lg border border-gray-100 italic text-[11px] text-gray-500 line-clamp-2">
+                                <div className="mt-2 mb-4 p-2.5 bg-gray-50 rounded-lg border border-gray-100 italic text-[11px] text-gray-500 line-clamp-1">
                                     "{loan.observation}"
                                 </div>
                             )}
@@ -246,11 +305,12 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                                 </div>
                                 {loan.status === BookLoanStatus.ACTIVE && (
                                     <button
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setSelectedLoanForReturn(loan);
                                             setShowPartialReturnModal(true);
                                         }}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold transition-all"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold transition-all shadow-sm"
                                     >
                                         <Undo2 size={14} /> Devolver
                                     </button>
@@ -440,6 +500,124 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                                 className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-bold flex items-center gap-2 disabled:opacity-50"
                             >
                                 {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Devolução'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* Loan Detail Modal */}
+            <Modal
+                isOpen={!!viewingLoan}
+                onClose={() => setViewingLoan(null)}
+                title="Detalhes do Empréstimo"
+            >
+                {viewingLoan && (
+                    <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
+                        {/* Student Info */}
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <div className="w-12 h-12 bg-ifrn-green/10 text-ifrn-green rounded-full flex items-center justify-center">
+                                <UserIcon size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-800 text-lg">{viewingLoan.personName}</h3>
+                                <p className="text-sm text-gray-500 font-medium">Matrícula: {viewingLoan.personMatricula || 'Não informada'}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-1">Data Empréstimo</p>
+                                <p className="text-sm font-bold text-blue-700">
+                                    {new Date(viewingLoan.loanDate).toLocaleDateString('pt-BR')} às {new Date(viewingLoan.loanDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
+                            <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-1">Status Geral</p>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${viewingLoan.status === BookLoanStatus.ACTIVE ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                    {viewingLoan.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Observation */}
+                        {viewingLoan.observation && (
+                            <div className="space-y-2">
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <FileText size={14} /> Observação
+                                </p>
+                                <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic text-sm text-gray-600">
+                                    "{viewingLoan.observation}"
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Books Details */}
+                        <div className="space-y-3">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <BookIcon size={14} /> Livros e Movimentações por Item
+                            </p>
+                            <div className="space-y-3">
+                                {viewingLoan.books.map(book => (
+                                    <div key={book.id} className="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h4 className="font-bold text-gray-800">{book.title}</h4>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">
+                                                    CÓD: <span className="text-gray-600">{book.code || '---'}</span> • SÉRIE/ÁREA: <span className="text-gray-600">{book.series || '---'}</span>
+                                                </p>
+                                            </div>
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${book.status === 'Devolvido' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {book.status}
+                                            </span>
+                                        </div>
+
+                                        {book.status === 'Devolvido' && (
+                                            <div className="mt-3 pt-3 border-t border-dashed border-gray-100 flex items-center gap-3">
+                                                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+                                                    <CheckCircle size={14} />
+                                                </div>
+                                                <div className="text-[11px]">
+                                                    <p className="font-bold text-emerald-700 uppercase tracking-tighter">Devolvido em {new Date(book.returnDate!).toLocaleDateString('pt-BR')} às {new Date(book.returnDate!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                                                    <p className="text-gray-500">Recebido por: <span className="font-medium">{book.returnedBy}</span></p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Movement History */}
+                        <div className="space-y-3">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <History size={14} /> Histórico de Ações
+                            </p>
+                            <div className="space-y-2">
+                                {viewingLoan.history?.map((entry, idx) => (
+                                    <div key={idx} className="flex gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                        <div className="mt-1">
+                                            <div className="w-2 h-2 rounded-full bg-ifrn-green shadow-sm shadow-ifrn-green/50"></div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm text-gray-700 font-medium">{entry.action}</p>
+                                            <div className="flex items-center gap-3 mt-1 text-[10px] text-gray-400 font-bold uppercase">
+                                                <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(entry.timestamp).toLocaleDateString('pt-BR')}</span>
+                                                <span className="flex items-center gap-1"><Clock size={10} /> {new Date(entry.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span className="flex items-center gap-1"><UserIcon size={10} /> {entry.user}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex justify-end">
+                            <button
+                                onClick={() => setViewingLoan(null)}
+                                className="px-8 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all text-sm"
+                            >
+                                Fechar
                             </button>
                         </div>
                     </div>

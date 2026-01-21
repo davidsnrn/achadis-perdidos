@@ -98,9 +98,12 @@ export interface BookLoan {
   id: string;
   personId: string;
   personName: string;
+  personMatricula?: string;
   books: {
     id: string;
     title: string;
+    code?: string;
+    series?: string;
     status?: 'Ativo' | 'Devolvido';
     returnDate?: string;
     returnedBy?: string;

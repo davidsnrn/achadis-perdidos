@@ -178,11 +178,17 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                                         <p className="text-xs font-black text-orange-700 uppercase">Pendente: {pendingBooks.length} de {loan.books.length} Livro(s)</p>
                                                         <div className="bg-orange-200 text-orange-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Pendente</div>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-1">
+                                                    <div className="flex flex-col gap-1.5">
                                                         {loan.books.map(b => (
-                                                            <span key={b.id} className={`px-2 py-0.5 rounded text-[10px] font-medium border ${b.status === 'Devolvido' ? 'bg-green-50 text-green-600 border-green-100 line-through opacity-50' : 'bg-white/80 border-orange-100 text-orange-900'}`}>
-                                                                {b.title}
-                                                            </span>
+                                                            <div key={b.id} className={`flex flex-col p-2 rounded-xl border text-[10px] ${b.status === 'Devolvido' ? 'bg-green-50 text-green-600 border-green-100 opacity-50' : 'bg-white/90 border-orange-200 text-orange-900 shadow-sm'}`}>
+                                                                <div className="flex items-center justify-between font-black uppercase tracking-tighter">
+                                                                    <span>{b.title}</span>
+                                                                    {b.status === 'Devolvido' && <CheckCircle size={12} />}
+                                                                </div>
+                                                                <div className="text-[9px] text-slate-400 mt-0.5 font-bold">
+                                                                    CÓD: <span className="text-slate-600 font-black">{b.code || '---'}</span> • SÉRIE: <span className="text-slate-600 font-black">{b.series || '---'}</span>
+                                                                </div>
+                                                            </div>
                                                         ))}
                                                     </div>
                                                     <p className="text-[9px] text-orange-400 font-bold uppercase mt-2">Iniciado em: {new Date(loan.loanDate).toLocaleDateString('pt-BR')}</p>
