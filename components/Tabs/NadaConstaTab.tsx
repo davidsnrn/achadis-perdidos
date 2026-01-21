@@ -35,12 +35,14 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
     }, [people]);
 
     const searchResults = useMemo(() => {
-        const term = searchTerm.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-        if (term.length < 2) return [];
+        const rawSearch = searchTerm.trim();
+        if (rawSearch.length < 2) return [];
+
+        const searchTerms = rawSearch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(t => t.length > 0);
 
         return students.filter(s => {
             const studentStr = `${s.registration} ${s.name}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-            return studentStr.includes(term);
+            return searchTerms.every(term => studentStr.includes(term));
         }).slice(0, 20);
     }, [searchTerm, students]);
 

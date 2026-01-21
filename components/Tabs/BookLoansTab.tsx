@@ -126,23 +126,36 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
         }
     };
 
-    const filteredLoans = loans.filter(l =>
-        l.personName.toLowerCase().includes(search.toLowerCase()) ||
-        l.books.some(b => b.title.toLowerCase().includes(search.toLowerCase()))
-    );
+    const normalizeText = (text: string) => {
+        return text
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+    };
+
+    const filteredLoans = loans.filter(l => {
+        if (!search.trim()) return true;
+        const searchTerms = normalizeText(search).split(/\s+/).filter(t => t.length > 0);
+        const loanText = normalizeText(`${l.personName} ${l.books.map(b => b.title).join(' ')}`);
+        return searchTerms.every(term => loanText.includes(term));
+    });
 
     const activeLoans = filteredLoans.filter(l => l.status === BookLoanStatus.ACTIVE);
     const historicalLoans = filteredLoans.filter(l => l.status === BookLoanStatus.RETURNED);
 
-    const filteredPeople = people.filter(p =>
-        p.name.toLowerCase().includes(personSearch.toLowerCase()) ||
-        p.matricula.includes(personSearch)
-    ).slice(0, 5);
+    const filteredPeople = people.filter(p => {
+        if (!personSearch.trim()) return true;
+        const searchTerms = normalizeText(personSearch).split(/\s+/).filter(t => t.length > 0);
+        const personText = normalizeText(`${p.name} ${p.matricula}`);
+        return searchTerms.every(term => personText.includes(term));
+    }).slice(0, 5);
 
-    const filteredBooks = books.filter(b =>
-        b.title.toLowerCase().includes(bookSearch.toLowerCase()) ||
-        b.code.toLowerCase().includes(bookSearch.toLowerCase())
-    ).slice(0, 5);
+    const filteredBooks = books.filter(b => {
+        if (!bookSearch.trim()) return true;
+        const searchTerms = normalizeText(bookSearch).split(/\s+/).filter(t => t.length > 0);
+        const bookText = normalizeText(`${b.title} ${b.code}`);
+        return searchTerms.every(term => bookText.includes(term));
+    }).slice(0, 5);
 
     return (
         <div className="space-y-6">

@@ -15,15 +15,16 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Form States
   const [formName, setFormName] = useState('');
   const [formMatricula, setFormMatricula] = useState('');
-  
+
   // Search States (Same as LostReportsTab)
   const [personSearch, setPersonSearch] = useState('');
+  const [userSearch, setUserSearch] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
   const userString = `${currentUser.name} (${currentUser.matricula})`;
@@ -37,13 +38,13 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
 
   const filteredPeople = useMemo(() => {
     if (!personSearch.trim()) return [];
-    
+
     const searchTerms = normalizeText(personSearch).split(/\s+/).filter(t => t.length > 0);
 
     return people.filter(p => {
       const personText = normalizeText(`${p.name} ${p.matricula}`);
       return searchTerms.every(term => personText.includes(term));
-    }).slice(0, 5); 
+    }).slice(0, 5);
   }, [people, personSearch]);
 
   const canManageUser = (targetUser: User) => {
@@ -56,13 +57,21 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
   };
 
   const visibleUsers = useMemo(() => {
-    const filtered = users.filter(u => {
+    let filtered = users.filter(u => {
       if (currentUser.level === UserLevel.ADMIN) return true;
       if (currentUser.level === UserLevel.ADVANCED) {
         return u.level !== UserLevel.ADMIN;
       }
       return false;
     });
+
+    if (userSearch.trim()) {
+      const searchTerms = normalizeText(userSearch).split(/\s+/).filter(t => t.length > 0);
+      filtered = filtered.filter(u => {
+        const userText = normalizeText(`${u.name} ${u.matricula} ${u.level}`);
+        return searchTerms.every(term => userText.includes(term));
+      });
+    }
 
     return filtered.sort((a, b) => {
       if (a.id === currentUser.id) return -1;
@@ -75,15 +84,15 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
     e.preventDefault();
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    
-    const password = selectedUser ? selectedUser.password : undefined; 
+
+    const password = selectedUser ? selectedUser.password : undefined;
 
     // Use state values (formName, formMatricula) to ensure we capture edits or autofills
     const newUser: User = {
       id: selectedUser ? selectedUser.id : Math.random().toString(36).substr(2, 9),
       matricula: formMatricula,
       name: formName,
-      password: password, 
+      password: password,
       level: formData.get('level') as UserLevel,
       logs: selectedUser ? selectedUser.logs : [],
     };
@@ -93,7 +102,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
       onUpdate();
       setShowEditModal(false);
       setSelectedUser(null);
-      if(!selectedUser) alert("Usuário criado com senha padrão 'ifrn123'.");
+      if (!selectedUser) alert("Usuário criado com senha padrão 'ifrn123'.");
     } catch (error) {
       alert((error as Error).message);
     } finally {
@@ -104,39 +113,39 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
   const handleResetPassword = async () => {
     if (!selectedUser) return;
     if (confirm(`Deseja resetar a senha do usuário ${selectedUser.name} para 'ifrn123'?`)) {
-       setIsLoading(true);
-       const updatedUser = { ...selectedUser, password: 'ifrn123' };
-       await StorageService.saveUser(updatedUser, `${userString} (Reset de Senha)`);
-       onUpdate();
-       alert('Senha resetada com sucesso para: ifrn123');
-       setShowEditModal(false);
-       setSelectedUser(null);
-       setIsLoading(false);
+      setIsLoading(true);
+      const updatedUser = { ...selectedUser, password: 'ifrn123' };
+      await StorageService.saveUser(updatedUser, `${userString} (Reset de Senha)`);
+      onUpdate();
+      alert('Senha resetada com sucesso para: ifrn123');
+      setShowEditModal(false);
+      setSelectedUser(null);
+      setIsLoading(false);
     }
   };
 
   const handleDelete = async (e: React.MouseEvent, user: User) => {
     e.stopPropagation();
     if (!canManageUser(user)) {
-       alert("Você não tem permissão para excluir este usuário.");
-       return;
+      alert("Você não tem permissão para excluir este usuário.");
+      return;
     }
-    
+
     if (user.id === currentUser.id) {
-        if (!confirm('ATENÇÃO: Você está prestes a excluir SEU PRÓPRIO usuário. Você perderá o acesso imediatamente. Deseja continuar?')) {
-            return;
-        }
+      if (!confirm('ATENÇÃO: Você está prestes a excluir SEU PRÓPRIO usuário. Você perderá o acesso imediatamente. Deseja continuar?')) {
+        return;
+      }
     } else {
-        if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+      if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
     }
 
     await StorageService.deleteUser(user.id);
     onUpdate();
     setShowDetailModal(false);
     setSelectedUser(null);
-    
+
     if (user.id === currentUser.id) {
-        window.location.reload();
+      window.location.reload();
     }
   };
 
@@ -150,29 +159,29 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
     setSelectedUser(user);
     // Init form state
     if (user) {
-        setFormName(user.name);
-        setFormMatricula(user.matricula);
-        setSelectedPerson(null); // Reset person link on edit to avoid confusion unless we match perfectly
+      setFormName(user.name);
+      setFormMatricula(user.matricula);
+      setSelectedPerson(null); // Reset person link on edit to avoid confusion unless we match perfectly
     } else {
-        setFormName('');
-        setFormMatricula('');
-        setSelectedPerson(null);
+      setFormName('');
+      setFormMatricula('');
+      setSelectedPerson(null);
     }
     setPersonSearch('');
     setShowEditModal(true);
   };
 
   const selectPerson = (p: Person) => {
-      setSelectedPerson(p);
-      setFormName(p.name);
-      setFormMatricula(p.matricula);
-      setPersonSearch('');
+    setSelectedPerson(p);
+    setFormName(p.name);
+    setFormMatricula(p.matricula);
+    setPersonSearch('');
   };
 
   const clearSelection = () => {
-      setSelectedPerson(null);
-      setFormName('');
-      setFormMatricula('');
+    setSelectedPerson(null);
+    setFormName('');
+    setFormMatricula('');
   };
 
   return (
@@ -184,21 +193,33 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
           <div>
             <h4 className="font-bold text-amber-800 text-sm">Controle de Acesso</h4>
             <p className="text-amber-700 text-xs mt-1">
-              {currentUser.level === UserLevel.ADMIN 
+              {currentUser.level === UserLevel.ADMIN
                 ? "Acesso Total: Pode criar e editar todos os níveis."
                 : "Acesso Avançado: Pode criar Padrão e Avançado. Edita Padrão e seu Próprio Perfil."}
             </p>
           </div>
         </div>
-        
-        {(currentUser.level === UserLevel.ADMIN || currentUser.level === UserLevel.ADVANCED) && (
-          <button 
-            onClick={(e) => openEditModal(e, null)}
-            className="flex items-center gap-2 px-4 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen transition-colors text-sm whitespace-nowrap"
-          >
-            <Plus size={18} /> Novo Usuário
-          </button>
-        )}
+
+        <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full md:w-auto">
+          <div className="relative flex-1">
+            <input
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-ifrn-green transition-all"
+              placeholder="Pesquisar usuários..."
+              value={userSearch}
+              onChange={e => setUserSearch(e.target.value)}
+            />
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+          </div>
+
+          {(currentUser.level === UserLevel.ADMIN || currentUser.level === UserLevel.ADVANCED) && (
+            <button
+              onClick={(e) => openEditModal(e, null)}
+              className="flex items-center gap-2 px-4 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen transition-colors text-sm whitespace-nowrap"
+            >
+              <Plus size={18} /> Novo Usuário
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Users Table */}
@@ -215,8 +236,8 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
             </thead>
             <tbody className="divide-y divide-gray-100">
               {visibleUsers.map(u => (
-                <tr 
-                  key={u.id} 
+                <tr
+                  key={u.id}
                   className={`hover:bg-gray-50 cursor-pointer ${u.id === currentUser.id ? 'bg-blue-50/50' : ''}`}
                   onClick={() => handleRowClick(u)}
                   title="Clique para ver detalhes"
@@ -227,11 +248,10 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                     {u.name}
                   </td>
                   <td className="p-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      u.level === UserLevel.ADMIN ? 'bg-red-100 text-red-800' : 
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${u.level === UserLevel.ADMIN ? 'bg-red-100 text-red-800' :
                       u.level === UserLevel.ADVANCED ? 'bg-purple-100 text-purple-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                       {u.level}
                     </span>
                   </td>
@@ -239,14 +259,14 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                     <div className="flex justify-center gap-2">
                       {canManageUser(u) && (
                         <>
-                          <button 
+                          <button
                             onClick={(e) => openEditModal(e, u)}
                             className="text-gray-400 hover:text-blue-600 p-1.5 transition-colors"
                             title="Editar"
                           >
                             <Pencil size={18} />
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleDelete(e, u)}
                             className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"
                             title="Excluir"
@@ -266,11 +286,11 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
 
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title={selectedUser ? 'Editar Usuário' : 'Novo Usuário'}>
         <div className="space-y-4">
-            
+
           {/* SEARCH COMPONENT (Identical Style to LostReportsTab) */}
           <div className="relative space-y-2">
             <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Quem é o usuário?</label>
-            
+
             {selectedPerson ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3 animate-fadeIn">
                 <div className="bg-green-100 p-2 rounded-full text-green-700">
@@ -280,8 +300,8 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                   <p className="font-bold text-green-900 text-sm truncate">{selectedPerson.name}</p>
                   <p className="text-xs text-green-700 truncate">{selectedPerson.matricula} • {selectedPerson.type}</p>
                 </div>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={clearSelection}
                   className="text-xs text-red-500 hover:underline hover:text-red-700 font-medium whitespace-nowrap"
                 >
@@ -298,7 +318,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                   onChange={e => setPersonSearch(e.target.value)}
                 />
                 <Search className="absolute left-3 top-3 text-gray-400" size={16} />
-                
+
                 {filteredPeople.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
                     {filteredPeople.map(p => (
@@ -311,7 +331,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                 )}
                 {personSearch.length > 1 && filteredPeople.length === 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-sm p-3 text-center">
-                     <p className="text-xs text-gray-400 italic">Nenhuma pessoa encontrada.</p>
+                    <p className="text-xs text-gray-400 italic">Nenhuma pessoa encontrada.</p>
                   </div>
                 )}
               </div>
@@ -320,45 +340,45 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
 
           <form onSubmit={handleSave} className="space-y-4 pt-2 border-t border-gray-100">
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                <input 
-                    name="name" 
-                    required 
-                    value={formName}
-                    onChange={e => setFormName(e.target.value)}
-                    className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-ifrn-green outline-none" 
-                    placeholder="Preenchido automaticamente..." 
-                />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+              <input
+                name="name"
+                required
+                value={formName}
+                onChange={e => setFormName(e.target.value)}
+                className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
+                placeholder="Preenchido automaticamente..."
+              />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula (Login)</label>
-                <input 
-                    name="matricula" 
-                    required 
-                    value={formMatricula}
-                    onChange={e => setFormMatricula(e.target.value)}
-                    className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-ifrn-green outline-none" 
-                    placeholder="Preenchido automaticamente..."
-                />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula (Login)</label>
+              <input
+                name="matricula"
+                required
+                value={formMatricula}
+                onChange={e => setFormMatricula(e.target.value)}
+                className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
+                placeholder="Preenchido automaticamente..."
+              />
             </div>
-            
+
             {!selectedUser && (<p className="text-xs text-gray-500 bg-gray-50 p-2 rounded"><span className="font-bold">Nota:</span> A senha inicial será definida automaticamente como <strong>ifrn123</strong>.</p>)}
-            
+
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nível de Acesso</label>
-                <select name="level" defaultValue={selectedUser?.level || UserLevel.STANDARD} disabled={selectedUser?.id === currentUser.id && currentUser.level !== UserLevel.ADMIN} className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-ifrn-green outline-none disabled:bg-gray-100 disabled:text-gray-500"><option value={UserLevel.STANDARD}>Padrão (Apenas consulta e registro básico)</option><option value={UserLevel.ADVANCED}>Avançado (Gestão de Itens e Usuários Padrão)</option>{currentUser.level === UserLevel.ADMIN && (<option value={UserLevel.ADMIN}>Administrador (Acesso Total)</option>)}</select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nível de Acesso</label>
+              <select name="level" defaultValue={selectedUser?.level || UserLevel.STANDARD} disabled={selectedUser?.id === currentUser.id && currentUser.level !== UserLevel.ADMIN} className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-ifrn-green outline-none disabled:bg-gray-100 disabled:text-gray-500"><option value={UserLevel.STANDARD}>Padrão (Apenas consulta e registro básico)</option><option value={UserLevel.ADVANCED}>Avançado (Gestão de Itens e Usuários Padrão)</option>{currentUser.level === UserLevel.ADMIN && (<option value={UserLevel.ADMIN}>Administrador (Acesso Total)</option>)}</select>
             </div>
-            
+
             {selectedUser && canManageUser(selectedUser) && (
-                <div className="pt-2 border-t mt-2">
+              <div className="pt-2 border-t mt-2">
                 <label className="block text-xs font-semibold text-gray-500 mb-2">Segurança</label>
                 <button type="button" onClick={handleResetPassword} className="w-full py-2 border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-sm flex items-center justify-center gap-2"><Lock size={14} /> Resetar Senha para 'ifrn123'</button>
-                </div>
+              </div>
             )}
-            
+
             <div className="pt-4 flex justify-end gap-3 border-t mt-4">
-                <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
-                <button type="submit" disabled={isLoading} className="px-6 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen font-medium flex items-center gap-2">{isLoading ? <Loader2 className="animate-spin" size={18} /> : <><UserCog size={18} /> Salvar Usuário</>}</button>
+              <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+              <button type="submit" disabled={isLoading} className="px-6 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen font-medium flex items-center gap-2">{isLoading ? <Loader2 className="animate-spin" size={18} /> : <><UserCog size={18} /> Salvar Usuário</>}</button>
             </div>
           </form>
         </div>
@@ -368,9 +388,9 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
         {selectedUser && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg border border-gray-100">
-               <div><span className="block text-xs font-bold text-gray-400 uppercase">Nome</span><p className="font-bold text-gray-800">{selectedUser.name}</p></div>
-               <div><span className="block text-xs font-bold text-gray-400 uppercase">Matrícula</span><p className="font-mono">{selectedUser.matricula}</p></div>
-               <div className="col-span-2"><span className="block text-xs font-bold text-gray-400 uppercase">Nível</span><span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${selectedUser.level === UserLevel.ADMIN ? 'bg-red-100 text-red-800' : selectedUser.level === UserLevel.ADVANCED ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}>{selectedUser.level}</span></div>
+              <div><span className="block text-xs font-bold text-gray-400 uppercase">Nome</span><p className="font-bold text-gray-800">{selectedUser.name}</p></div>
+              <div><span className="block text-xs font-bold text-gray-400 uppercase">Matrícula</span><p className="font-mono">{selectedUser.matricula}</p></div>
+              <div className="col-span-2"><span className="block text-xs font-bold text-gray-400 uppercase">Nível</span><span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${selectedUser.level === UserLevel.ADMIN ? 'bg-red-100 text-red-800' : selectedUser.level === UserLevel.ADVANCED ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}>{selectedUser.level}</span></div>
             </div>
             <div>
               <h4 className="flex items-center gap-2 font-bold text-gray-700 mb-3 border-b pb-2"><FileText size={18} /> Log de Auditoria</h4>

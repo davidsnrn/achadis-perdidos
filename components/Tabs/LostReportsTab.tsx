@@ -218,7 +218,12 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, items, onUpda
             </thead>
             <tbody className="divide-y divide-gray-100">
               {reports
-                .filter(r => r.itemDescription.toLowerCase().includes(searchTerm.toLowerCase()) || r.personName.toLowerCase().includes(searchTerm.toLowerCase()))
+                .filter(r => {
+                  if (!searchTerm.trim()) return true;
+                  const searchTerms = normalizeText(searchTerm).split(/\s+/).filter(t => t.length > 0);
+                  const reportText = normalizeText(`${r.itemDescription} ${r.personName}`);
+                  return searchTerms.every(term => reportText.includes(term));
+                })
                 .map(report => (
                   <tr
                     key={report.id}
@@ -230,8 +235,8 @@ export const LostReportsTab: React.FC<Props> = ({ reports, people, items, onUpda
                     <td className="p-4 text-gray-600 whitespace-nowrap">{report.personName}</td>
                     <td className="p-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 ${report.status === ReportStatus.OPEN ? 'bg-yellow-100 text-yellow-800' :
-                          report.status === ReportStatus.FOUND ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800 border border-green-200 shadow-sm'
+                        report.status === ReportStatus.FOUND ? 'bg-blue-100 text-blue-800' :
+                          'bg-green-100 text-green-800 border border-green-200 shadow-sm'
                         }`}>
                         {report.status === ReportStatus.RESOLVED && <CheckCircle size={12} />}
                         {report.status}

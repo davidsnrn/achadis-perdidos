@@ -80,11 +80,19 @@ export const BooksTab: React.FC<Props> = ({ books, onUpdate, user }) => {
         }
     };
 
-    const filteredBooks = books.filter(b =>
-        b.title.toLowerCase().includes(search.toLowerCase()) ||
-        b.code.toLowerCase().includes(search.toLowerCase()) ||
-        b.area.toLowerCase().includes(search.toLowerCase())
-    );
+    const normalizeText = (text: string) => {
+        return text
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+    };
+
+    const filteredBooks = books.filter(b => {
+        if (!search.trim()) return true;
+        const searchTerms = normalizeText(search).split(/\s+/).filter(t => t.length > 0);
+        const bookText = normalizeText(`${b.title} ${b.code} ${b.area}`);
+        return searchTerms.every(term => bookText.includes(term));
+    });
 
     return (
         <div className="space-y-6">
