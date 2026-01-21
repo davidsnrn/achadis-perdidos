@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StorageService } from './services/storage';
-import { User, UserLevel, FoundItem, LostReport, Person } from './types';
+import { User, UserLevel, FoundItem, LostReport, Person, Book, BookLoan } from './types';
 import { IfrnLogo } from './components/Logo';
 import { FoundItemsTab } from './components/Tabs/FoundItemsTab';
 import { LostReportsTab } from './components/Tabs/LostReportsTab';
 import { PeopleTab } from './components/Tabs/PeopleTab';
 import { UsersTab } from './components/Tabs/UsersTab';
 import { ArmariosTab } from './components/Tabs/ArmariosTab';
-import { LogOut, Package, ClipboardList, Users, ShieldCheck, KeyRound, Menu, X, Settings, Trash, AlertTriangle, ChevronDown, ChevronUp, UserX, FileX, Save, Building2, Eye, EyeOff, Loader2, Key, Search, Trash2, ShieldAlert, AlertCircle, CheckCircle2, History, Send, ArrowRight, LayoutGrid, Download } from 'lucide-react';
+import { BooksTab } from './components/Tabs/BooksTab';
+import { BookLoansTab } from './components/Tabs/BookLoansTab';
+import { LogOut, Package, ClipboardList, Users, ShieldCheck, KeyRound, Menu, X, Settings, Trash, AlertTriangle, ChevronDown, ChevronUp, UserX, FileX, Save, Building2, Eye, EyeOff, Loader2, Key, Search, Trash2, ShieldAlert, AlertCircle, CheckCircle2, History, Send, ArrowRight, LayoutGrid, Download, BookOpen } from 'lucide-react';
 import { Modal } from './components/ui/Modal';
 
 type ConfirmActionType = 'DELETE_ITEMS' | 'DELETE_REPORTS' | 'DELETE_PEOPLE' | 'DELETE_USERS' | 'FACTORY_RESET' | null;
@@ -17,7 +19,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showModuleSelector, setShowModuleSelector] = useState(false);
-  const [currentSystem, setCurrentSystem] = useState<'achados' | 'armarios' | null>(null);
+  const [currentSystem, setCurrentSystem] = useState<'achados' | 'armarios' | 'livros' | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Settings / Admin Config State
@@ -49,6 +51,8 @@ const App: React.FC = () => {
   const [reports, setReports] = useState<LostReport[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [bookLoans, setBookLoans] = useState<BookLoan[]>([]);
 
   // Login State
   const [loginMat, setLoginMat] = useState('');
@@ -84,16 +88,20 @@ const App: React.FC = () => {
         StorageService.getItems(),
         StorageService.getReports(),
         StorageService.getPeople(),
-        StorageService.getUsers()
+        StorageService.getUsers(),
+        StorageService.getBooks(),
+        StorageService.getBookLoans()
       ]);
 
       const result = await Promise.race([dataPromise, timeout]);
-      const [fetchedItems, fetchedReports, fetchedPeople, fetchedUsers] = result as [FoundItem[], LostReport[], Person[], User[]];
+      const [fetchedItems, fetchedReports, fetchedPeople, fetchedUsers, fetchedBooks, fetchedLoans] = result as [FoundItem[], LostReport[], Person[], User[], Book[], BookLoan[]];
 
       setItems(fetchedItems);
       setReports(fetchedReports);
       setPeople(fetchedPeople);
       setUsers(fetchedUsers);
+      setBooks(fetchedBooks);
+      setBookLoans(fetchedLoans);
     } catch (e) {
       console.error("Erro ao carregar dados:", e);
     } finally {
@@ -469,6 +477,30 @@ const App: React.FC = () => {
               </div>
             </button>
 
+            {/* Livros PNLD */}
+            <button
+              onClick={() => {
+                setCurrentSystem('livros');
+                setActiveTab('livros-catalogo');
+                setShowModuleSelector(false);
+              }}
+              className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-orange-600 transition-all group text-left relative overflow-hidden"
+            >
+              <div className="absolute right-0 top-0 p-6 text-orange-50 group-hover:text-orange-600/5 transition-colors">
+                <BookOpen size={120} />
+              </div>
+              <div className="relative z-10">
+                <div className="bg-orange-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform">
+                  <BookOpen size={28} />
+                </div>
+                <h3 className="text-xl font-black text-gray-800 mb-2">Livros PNLD</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">Gerencie catálogo e empréstimos de livros.</p>
+                <div className="mt-6 flex items-center gap-2 text-orange-600 font-bold text-sm">
+                  Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                </div>
+              </div>
+            </button>
+
             {/* Cadastro de Pessoas */}
             <button
               onClick={() => {
@@ -568,6 +600,12 @@ const App: React.FC = () => {
               {currentSystem === 'armarios' && (
                 <button onClick={() => handleMobileNav('armarios')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${activeTab === 'armarios' ? 'bg-ifrn-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><Key size={20} /> Gestão de Armários</button>
               )}
+              {currentSystem === 'livros' && (
+                <>
+                  <button onClick={() => handleMobileNav('livros-catalogo')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${activeTab === 'livros-catalogo' ? 'bg-ifrn-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><BookOpen size={20} /> Catálogo de Livros</button>
+                  <button onClick={() => handleMobileNav('livros-emprestimos')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${activeTab === 'livros-emprestimos' ? 'bg-ifrn-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><ArrowRight size={20} /> Empréstimos</button>
+                </>
+              )}
 
               {canConfigure && (
                 <div className="pt-4 mt-2 border-t border-gray-100">
@@ -649,6 +687,12 @@ const App: React.FC = () => {
           {currentSystem === 'armarios' && (
             <button onClick={() => setActiveTab('armarios')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-medium text-sm transition-all ${activeTab === 'armarios' ? 'bg-white border-x border-t border-gray-200 text-ifrn-darkGreen -mb-px' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}><Key size={18} /> Gestão de Armários</button>
           )}
+          {currentSystem === 'livros' && (
+            <>
+              <button onClick={() => setActiveTab('livros-catalogo')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-medium text-sm transition-all ${activeTab === 'livros-catalogo' ? 'bg-white border-x border-t border-gray-200 text-ifrn-darkGreen -mb-px' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}><BookOpen size={18} /> Catálogo de Livros</button>
+              <button onClick={() => setActiveTab('livros-emprestimos')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-medium text-sm transition-all ${activeTab === 'livros-emprestimos' ? 'bg-white border-x border-t border-gray-200 text-ifrn-darkGreen -mb-px' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}><ArrowRight size={18} /> Empréstimos</button>
+            </>
+          )}
 
         </div>
         <div className="min-h-[400px]">
@@ -660,6 +704,8 @@ const App: React.FC = () => {
               {activeTab === 'relatos' && <LostReportsTab reports={reports} people={people} items={items} onUpdate={refreshData} user={user} />}
               {activeTab === 'pessoas' && <PeopleTab people={people} onUpdate={refreshData} user={user} />}
               {activeTab === 'armarios' && <ArmariosTab user={user} people={people} />}
+              {activeTab === 'livros-catalogo' && <BooksTab books={books} onUpdate={refreshData} user={user} />}
+              {activeTab === 'livros-emprestimos' && <BookLoansTab loans={bookLoans} books={books} people={people} onUpdate={refreshData} user={user} />}
               {activeTab === 'usuarios' && <UsersTab users={users} currentUser={user} onUpdate={refreshData} people={people} />}
             </>
           )}

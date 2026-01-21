@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { FoundItem, ItemStatus, LostReport, Person, PersonType, ReportStatus, User, UserLevel } from "../types";
+import { Book, BookLoan, BookLoanStatus, FoundItem, ItemStatus, LostReport, Person, PersonType, ReportStatus, User, UserLevel } from "../types";
 import { Locker, LockerStatus } from "../types-armarios";
 
 // Configuração do Supabase
@@ -522,14 +522,104 @@ export const StorageService = {
     localStorage.clear();
   },
 
+  // Books
+  getBooks: async (): Promise<Book[]> => {
+    let allData: Book[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .order('title', { ascending: true })
+        .range(from, from + limit - 1);
+
+      if (error) break;
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
+    }
+    return allData;
+  },
+
+  saveBook: async (book: Book) => {
+    const { error } = await supabase.from('books').upsert({
+      id: book.id,
+      edition: book.edition,
+      code: book.code,
+      area: book.area,
+      title: book.title,
+      series: book.series,
+      publisher: book.publisher,
+      quantity: book.quantity
+    });
+
+    if (error) throw error;
+  },
+
+  deleteBook: async (id: string) => {
+    await supabase.from('books').delete().eq('id', id);
+  },
+
+  // Book Loans
+  getBookLoans: async (): Promise<BookLoan[]> => {
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('book_loans')
+        .select('*')
+        .order('loan_date', { ascending: false })
+        .range(from, from + limit - 1);
+
+      if (error) break;
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
+    }
+
+    return allData.map((d: any) => ({
+      id: d.id,
+      personId: d.person_id,
+      personName: d.person_name,
+      books: d.books,
+      loanedBy: d.loaned_by,
+      loanDate: d.loan_date,
+      status: d.status as BookLoanStatus,
+      returnDate: d.return_date
+    }));
+  },
+
+  saveBookLoan: async (loan: BookLoan) => {
+    const payload = {
+      id: loan.id,
+      person_id: loan.personId,
+      person_name: loan.personName,
+      books: loan.books,
+      loaned_by: loan.loanedBy,
+      loan_date: loan.loanDate,
+      status: loan.status,
+      return_date: loan.returnDate
+    };
+    const { error } = await supabase.from('book_loans').upsert(payload);
+    if (error) throw error;
+  },
+
   getBackupData: async () => {
-    const [config, users, people, items, reports, lockers] = await Promise.all([
+    const [config, users, people, items, reports, lockers, books, loans] = await Promise.all([
       supabase.from('config').select('*'),
       supabase.from('users').select('*'),
       supabase.from('people').select('*'),
       supabase.from('items').select('*'),
       supabase.from('reports').select('*'),
-      supabase.from('lockers').select('*')
+      supabase.from('lockers').select('*'),
+      supabase.from('books').select('*'),
+      supabase.from('book_loans').select('*')
     ]);
 
     return {
@@ -539,6 +629,8 @@ export const StorageService = {
       items: items.data || [],
       reports: reports.data || [],
       lockers: lockers.data || [],
+      books: books.data || [],
+      loans: loans.data || [],
       exportDate: new Date().toISOString(),
       version: '1.0'
     };

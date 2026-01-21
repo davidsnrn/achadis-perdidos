@@ -77,3 +77,30 @@ export interface AuditLog {
   action: string;
   timestamp: string;
 }
+
+export enum BookLoanStatus {
+  ACTIVE = 'Ativo',
+  RETURNED = 'Devolvido'
+}
+
+export interface Book {
+  id: string;
+  edition: string;
+  code: string;
+  area: string;
+  title: string;
+  series: string;
+  publisher: string;
+  quantity: string;
+}
+
+export interface BookLoan {
+  id: string;
+  personId: string;
+  personName: string;
+  books: { id: string, title: string }[];
+  loanedBy: string;
+  loanDate: string;
+  status: BookLoanStatus;
+  returnDate?: string;
+}
