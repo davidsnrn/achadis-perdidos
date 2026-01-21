@@ -38,8 +38,27 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
         const rawSearch = searchTerm.trim();
         if (rawSearch.length < 2) return [];
 
-        const searchTerms = rawSearch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(t => t.length > 0);
+        // Suporte para busca em lote (OU) se contiver vírgula
+        if (rawSearch.includes(',')) {
+            const searchChunks = rawSearch.split(',')
+                .map(chunk => chunk.trim())
+                .filter(chunk => chunk.length >= 2);
 
+            if (searchChunks.length === 0) return [];
+
+            return students.filter(s => {
+                return searchChunks.some(chunk => {
+                    const normalizedChunk = chunk.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                    const studentReg = s.registration.toLowerCase();
+                    const studentName = s.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                    // Usamos includes para ambos para permitir busca parcial enquanto digita
+                    return studentReg.includes(normalizedChunk) || studentName.includes(normalizedChunk);
+                });
+            }).slice(0, 50);
+        }
+
+        // Busca normal (E) - espaços como separadores
+        const searchTerms = rawSearch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(t => t.length > 0);
         return students.filter(s => {
             const studentStr = `${s.registration} ${s.name}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
             return searchTerms.every(term => studentStr.includes(term));
@@ -68,10 +87,7 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
             });
         }
 
-        const bookHistoryArray = person ? bookLoans.filter(l => l.personId === person.id).flatMap(l => l.history || []) : [];
-        const sortedHistory = bookHistoryArray.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-        return { activeLockerLoans, activeBookLoans, bookHistory: sortedHistory };
+        return { activeLockerLoans, activeBookLoans };
     };
 
     return (
@@ -90,18 +106,21 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                 <div className="relative">
                     <textarea
                         ref={textareaRef}
-                        placeholder="Digite o nome ou matrícula do aluno..."
+                        placeholder="Ex: 202312345, 202398765 ou nomes..."
                         className="w-full bg-slate-50 border-4 border-slate-100 rounded-3xl p-6 text-xl font-black text-slate-800 outline-none focus:border-blue-500 transition-all shadow-inner placeholder:text-slate-300 min-h-[100px] overflow-hidden"
                         rows={1}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                    <div className="mt-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2 ml-4">
+                        <Info size={12} /> Dica: Separe por vírgula para buscar vários alunos ao mesmo tempo.
+                    </div>
                 </div>
             </div>
 
             <div className="space-y-6">
                 {searchResults.map(student => {
-                    const { activeLockerLoans, activeBookLoans, bookHistory } = getStudentPendencies(student.registration);
+                    const { activeLockerLoans, activeBookLoans } = getStudentPendencies(student.registration);
 
                     const realActiveBookLoans = activeBookLoans.filter(loan =>
                         loan.books.some(b => b.status === 'Ativo' || !b.status)
@@ -203,44 +222,6 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                     )}
                                 </div>
                             </div>
-
-                            {hasPendency && (
-                                <div className="mx-8 mb-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-4">
-                                    <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
-                                        <AlertTriangle size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-black text-amber-800 uppercase tracking-tight">Atenção</p>
-                                        <p className="text-xs text-amber-700 font-medium leading-relaxed">Este aluno deve devolver os itens listados acima antes de receber a certidão de Nada Consta ou efetuar nova matrícula.</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* History Section */}
-                            {bookHistory.length > 0 && (
-                                <div className="border-t border-slate-100 p-8 pt-6">
-                                    <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
-                                        <History size={16} /> Histórico de Movimentações (Livros)
-                                    </h4>
-                                    <div className="space-y-3">
-                                        {bookHistory.map((h, i) => (
-                                            <div key={i} className="flex gap-4 items-start relative pb-3 last:pb-0">
-                                                {i !== bookHistory.length - 1 && <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-slate-100" />}
-                                                <div className={`mt-1 w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 ${h.action.includes('Devolução') ? 'bg-green-50 border-green-200 text-green-500' : 'bg-blue-50 border-blue-200 text-blue-500'}`}>
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between items-start">
-                                                        <p className="text-sm font-bold text-slate-700 leading-tight">{h.action}</p>
-                                                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider">{new Date(h.timestamp).toLocaleDateString('pt-BR')} • {new Date(h.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    </div>
-                                                    <p className="text-[10px] text-slate-400 font-medium uppercase mt-1">Operador: <span className="text-slate-500">{h.user}</span></p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     );
                 })}
