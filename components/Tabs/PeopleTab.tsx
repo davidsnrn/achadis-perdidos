@@ -175,7 +175,7 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
     const newPeople: Person[] = [];
     let processingLog = '';
 
-    const existingMatriculas = new Set(people.map(p => p.matricula));
+    const existingMatriculas = new Set(people.map(p => p.matricula.trim()));
     const existingNames = new Set(people.map(p => normalizeText(p.name)));
 
     let totalInFiles = 0;
@@ -228,7 +228,9 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
           const cleanName = toTitleCase(pName.trim().replace(/^["']|["']$/g, ''));
           const cleanMatricula = pMatricula.trim().replace(/^["']|["']$/g, '');
 
-          if (cleanName.toLowerCase() === 'nome') continue;
+          // Ignora se for o próprio cabeçalho que se repetiu no meio do arquivo
+          if (cleanName.toLowerCase() === 'nome' && cleanMatricula.toLowerCase().includes('matrícula')) continue;
+
           if (cleanName.length < 2 || cleanMatricula.length < 2) continue;
 
           totalInFiles++;
