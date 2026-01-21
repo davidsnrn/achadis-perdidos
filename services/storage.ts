@@ -591,7 +591,9 @@ export const StorageService = {
       loanedBy: d.loaned_by,
       loanDate: d.loan_date,
       status: d.status as BookLoanStatus,
-      returnDate: d.return_date
+      returnDate: d.return_date,
+      observation: d.observation,
+      history: d.history
     }));
   },
 
@@ -604,7 +606,9 @@ export const StorageService = {
       loaned_by: loan.loanedBy,
       loan_date: loan.loanDate,
       status: loan.status,
-      return_date: loan.returnDate
+      return_date: loan.returnDate,
+      observation: loan.observation,
+      history: loan.history || []
     };
     const { error } = await supabase.from('book_loans').upsert(payload);
     if (error) throw error;

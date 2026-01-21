@@ -98,9 +98,21 @@ export interface BookLoan {
   id: string;
   personId: string;
   personName: string;
-  books: { id: string, title: string }[];
+  books: {
+    id: string;
+    title: string;
+    status?: 'Ativo' | 'Devolvido';
+    returnDate?: string;
+    returnedBy?: string;
+  }[];
   loanedBy: string;
   loanDate: string;
   status: BookLoanStatus;
   returnDate?: string;
+  observation?: string;
+  history?: {
+    action: string;
+    user: string;
+    timestamp: string;
+  }[];
 }

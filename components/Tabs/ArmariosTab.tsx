@@ -16,11 +16,12 @@ import { Loader2, LayoutGrid, FileText, Settings, Key, Plus, Download, FileSprea
 interface ArmariosTabProps {
   user: any; // User from Achados system
   people: Person[];
+  lockers: Locker[];
+  onUpdate: () => void;
 }
 
-export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
-  const [lockers, setLockers] = useState<Locker[]>([]);
-  const [loading, setLoading] = useState(true);
+export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers, onUpdate }) => {
+  const [loading, setLoading] = useState(false);
 
   const students = useMemo(() => {
     return people
@@ -41,30 +42,8 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
 
   const isAdmin = user?.level === UserLevel.ADMIN;
 
-  const refreshLockers = async () => {
-    setLoading(true);
-    const data = await StorageService.getLockers();
-    if (data.length > 0) {
-      setLockers(data);
-    } else {
-      // Se não houver dados no Supabase, tentamos ler do localStorage (Migração)
-      const savedLockers = localStorage.getItem('sga_lockers_v4');
-      if (savedLockers) {
-        const parsed = JSON.parse(savedLockers);
-        setLockers(parsed);
-        // Opcionalmente salvamos no Supabase imediatamente para garantir persistência
-        await StorageService.saveLockers(parsed);
-      } else {
-        const initial = generateInitialLockers();
-        setLockers(initial);
-        await StorageService.saveLockers(initial);
-      }
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    refreshLockers();
+    // Escopo inicial gerenciado pelo pai (App.tsx)
   }, []);
 
   const stats = useMemo(() => {
@@ -84,7 +63,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
       await StorageService.saveLockers(newData);
 
       // Atualiza o estado local mesclando ou recarregando
-      await refreshLockers();
+      onUpdate();
       setCurrentView('dashboard');
     } catch (e: any) {
       alert("Erro ao importar dados:\n" + (e.message || "Erro desconhecido"));
@@ -98,7 +77,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     setLoading(true);
     try {
       await StorageService.saveLockers(newLockers);
-      await refreshLockers();
+      onUpdate();
       setCurrentView('dashboard');
       alert(`${newLockers.length} armários processados com sucesso!`);
     } catch (e) {
@@ -129,7 +108,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     setLoading(true);
     try {
       await StorageService.updateSingleLocker(newLockerData);
-      setLockers(prev => prev.map(l => l.number === loan.lockerNumber ? newLockerData : l));
+      onUpdate();
       setCurrentView('dashboard');
       setSelectedLocker(null);
     } catch (e) {
@@ -154,7 +133,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     setLoading(true);
     try {
       await StorageService.updateSingleLocker(updatedLocker);
-      setLockers(prev => prev.map(loc => loc.number === lockerNumber ? updatedLocker : loc));
+      onUpdate();
       setShowDetail(false);
       setSelectedLocker(null);
     } catch (e) {
@@ -173,10 +152,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     setLoading(true);
     try {
       await StorageService.updateSingleLocker(updatedLocker);
-      setLockers(prev => prev.map(loc => loc.number === lockerNumber ? updatedLocker : loc));
-      if (selectedLocker?.number === lockerNumber) {
-        setSelectedLocker(updatedLocker);
-      }
+      onUpdate();
     } catch (e) {
       alert("Erro ao atualizar observação.");
     } finally {
@@ -230,11 +206,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
         StorageService.updateSingleLocker(updatedOldLocker),
         StorageService.updateSingleLocker(updatedNewLocker)
       ]);
-      setLockers(prev => prev.map(l => {
-        if (l.number === oldNumber) return updatedOldLocker;
-        if (l.number === newNumber) return updatedNewLocker;
-        return l;
-      }));
+      onUpdate();
     } catch (e) {
       alert("Erro ao realizar troca.");
     } finally {
@@ -262,8 +234,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     setLoading(true);
     try {
       await StorageService.updateSingleLocker(updatedLocker);
-      setLockers(prev => prev.map(loc => loc.number === lockerNumber ? updatedLocker : loc));
-      setSelectedLocker(updatedLocker);
+      onUpdate();
     } catch (e) {
       alert("Erro ao registrar manutenção.");
     } finally {
@@ -295,7 +266,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     setLoading(true);
     try {
       await StorageService.updateSingleLocker(updatedLocker);
-      setLockers(prev => prev.map(loc => loc.number === lockerNumber ? updatedLocker : loc));
+      onUpdate();
       setShowDetail(false);
     } catch (e) {
       alert("Erro ao resolver manutenção.");
@@ -309,7 +280,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
     setLoading(true);
     try {
       await StorageService.clearAllLockerLoans();
-      await refreshLockers();
+      onUpdate();
       alert("Todos os empréstimos e históricos foram apagados com sucesso.");
     } catch (e) {
       alert("Erro ao limpar dados.");
@@ -388,7 +359,6 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
       <div className="bg-white border-b border-slate-200 flex justify-between items-center p-4">
         <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
           <button onClick={() => setCurrentView('dashboard')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'dashboard' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><LayoutGrid size={14} /> Painel</button>
-          <button onClick={() => setCurrentView('search')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'search' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><Key size={14} /> NADA CONSTA</button>
           <button onClick={() => setCurrentView('reports')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'reports' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><FileText size={14} /> Relatórios</button>
           {isAdmin && (
             <button onClick={() => setCurrentView('config')} className={`px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap ${currentView === 'config' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'}`}><Settings size={14} /> Configuração</button>
@@ -456,16 +426,6 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people }) => {
               </div>
             </div>
           </div>
-        )}
-
-        {currentView === 'search' && (
-          <StudentSearch
-            students={students}
-            lockers={lockers}
-            onReturnLocker={handleReturnLocker}
-            onUpdateObservation={handleUpdateObservation}
-            onChangeLocker={handleChangeLocker}
-          />
         )}
 
         {currentView === 'reports' && (

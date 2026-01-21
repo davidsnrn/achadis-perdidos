@@ -15,18 +15,25 @@ interface Props {
 export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, user }) => {
     const [activeSubTab, setActiveSubTab] = useState<'current' | 'history'>('current');
     const [showLoanModal, setShowLoanModal] = useState(false);
+    const [showPartialReturnModal, setShowPartialReturnModal] = useState(false);
+    const [selectedLoanForReturn, setSelectedLoanForReturn] = useState<BookLoan | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [search, setSearch] = useState('');
 
     // New Loan Form State
     const [selectedPersonId, setSelectedPersonId] = useState('');
-    const [selectedBooks, setSelectedBooks] = useState<{ id: string, title: string }[]>([]);
+    const [selectedBooks, setSelectedBooks] = useState<{ id: string, title: string, status?: 'Ativo' | 'Devolvido' }[]>([]);
     const [personSearch, setPersonSearch] = useState('');
     const [bookSearch, setBookSearch] = useState('');
+    const [observation, setObservation] = useState('');
 
     const handleAddBook = (book: Book) => {
         if (selectedBooks.find(b => b.id === book.id)) return;
-        setSelectedBooks([...selectedBooks, { id: book.id, title: book.title }]);
+        setSelectedBooks([...selectedBooks, {
+            id: book.id,
+            title: book.title,
+            status: 'Ativo'
+        }]);
     };
 
     const handleRemoveBook = (bookId: string) => {
@@ -49,10 +56,16 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                 id: Math.random().toString(36).substr(2, 9),
                 personId: person.id,
                 personName: person.name,
-                books: selectedBooks,
+                books: selectedBooks.map(b => ({ ...b, status: 'Ativo' })),
                 loanedBy: user.name,
                 loanDate: new Date().toISOString(),
-                status: BookLoanStatus.ACTIVE
+                status: BookLoanStatus.ACTIVE,
+                observation,
+                history: [{
+                    action: `Empréstimo inicial: ${selectedBooks.map(b => b.title).join(', ')}`,
+                    user: user.name,
+                    timestamp: new Date().toISOString()
+                }]
             };
 
             await StorageService.saveBookLoan(newLoan);
@@ -62,6 +75,7 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
             setSelectedBooks([]);
             setPersonSearch('');
             setBookSearch('');
+            setObservation('');
             alert('Empréstimo realizado com sucesso!');
         } catch (err) {
             alert('Erro ao realizar empréstimo.');
@@ -70,19 +84,41 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
         }
     };
 
-    const handleReturnLoan = async (loan: BookLoan) => {
-        if (!confirm('Confirmar a devolução deste(s) livro(s)?')) return;
+    const handlePartialReturn = async (loan: BookLoan, bookIds: string[]) => {
+        if (bookIds.length === 0) return;
 
         setIsLoading(true);
         try {
+            const now = new Date().toISOString();
+            const updatedBooks = loan.books.map(b => {
+                if (bookIds.includes(b.id)) {
+                    return { ...b, status: 'Devolvido' as const, returnDate: now, returnedBy: user.name };
+                }
+                return b;
+            });
+
+            const allReturned = updatedBooks.every(b => b.status === 'Devolvido');
+            const returnedTitles = loan.books.filter(b => bookIds.includes(b.id)).map(b => b.title).join(', ');
+
             const updatedLoan: BookLoan = {
                 ...loan,
-                status: BookLoanStatus.RETURNED,
-                returnDate: new Date().toISOString()
+                books: updatedBooks,
+                status: allReturned ? BookLoanStatus.RETURNED : BookLoanStatus.ACTIVE,
+                returnDate: allReturned ? now : loan.returnDate,
+                history: [
+                    ...(loan.history || []),
+                    {
+                        action: `Devolução parcial: ${returnedTitles}`,
+                        user: user.name,
+                        timestamp: now
+                    }
+                ]
             };
+
             await StorageService.saveBookLoan(updatedLoan);
             onUpdate();
-            alert('Livro(s) devolvido(s) com sucesso!');
+            setShowPartialReturnModal(false);
+            alert('Devolução registrada com sucesso!');
         } catch (err) {
             alert('Erro ao processar devolução.');
         } finally {
@@ -177,12 +213,19 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Livros Emprestados:</p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {loan.books.map(book => (
-                                        <span key={book.id} className="flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-md border border-gray-100">
+                                        <span key={book.id} className={`flex items-center gap-1 px-2 py-1 rounded-md border text-xs ${book.status === 'Devolvido' ? 'bg-green-50 text-green-600 border-green-100 line-through opacity-70' : 'bg-gray-50 text-gray-600 border-gray-100'}`}>
                                             <BookIcon size={12} /> {book.title}
+                                            {book.status === 'Devolvido' && <CheckCircle size={10} />}
                                         </span>
                                     ))}
                                 </div>
                             </div>
+
+                            {loan.observation && (
+                                <div className="mt-2 mb-4 p-2.5 bg-gray-50 rounded-lg border border-gray-100 italic text-[11px] text-gray-500 line-clamp-2">
+                                    "{loan.observation}"
+                                </div>
+                            )}
 
                             <div className="pt-4 border-t border-dashed border-gray-100 flex items-center justify-between">
                                 <div className="text-[10px] text-gray-400">
@@ -190,7 +233,10 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                                 </div>
                                 {loan.status === BookLoanStatus.ACTIVE && (
                                     <button
-                                        onClick={() => handleReturnLoan(loan)}
+                                        onClick={() => {
+                                            setSelectedLoanForReturn(loan);
+                                            setShowPartialReturnModal(true);
+                                        }}
                                         className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold transition-all"
                                     >
                                         <Undo2 size={14} /> Devolver
@@ -282,6 +328,17 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                         )}
                     </div>
 
+                    {/* Observation */}
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">3. Observação (Opcional)</label>
+                        <textarea
+                            className="w-full border rounded-lg p-3 text-sm focus:ring-2 focus:ring-ifrn-green outline-none h-20 resize-none"
+                            placeholder="Adicione observações importantes sobre este empréstimo..."
+                            value={observation}
+                            onChange={e => setObservation(e.target.value)}
+                        />
+                    </div>
+
                     <div className="pt-6 flex justify-end gap-3 border-t">
                         <button
                             type="button"
@@ -299,6 +356,81 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                         </button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Partial Return Modal */}
+            <Modal
+                isOpen={showPartialReturnModal}
+                onClose={() => { setShowPartialReturnModal(false); setSelectedLoanForReturn(null); }}
+                title="Confirmar Devolução de Livros"
+            >
+                {selectedLoanForReturn && (
+                    <div className="space-y-6">
+                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                            <p className="text-sm font-bold text-blue-700">{selectedLoanForReturn.personName}</p>
+                            <p className="text-xs text-blue-500 mt-1">Selecione os livros que estão sendo devolvidos agora:</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            {selectedLoanForReturn.books.map(book => (
+                                <div
+                                    key={book.id}
+                                    className={`flex items-center justify-between p-3 rounded-xl border transition-all ${book.status === 'Devolvido' ? 'bg-gray-50 opacity-50 border-gray-200' : 'bg-white border-gray-100 hover:border-ifrn-green cursor-pointer'}`}
+                                    onClick={() => {
+                                        if (book.status === 'Devolvido') return;
+                                        const checkbox = document.getElementById(`book-${book.id}`) as HTMLInputElement;
+                                        if (checkbox) checkbox.checked = !checkbox.checked;
+                                    }}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <BookIcon size={18} className={book.status === 'Devolvido' ? 'text-gray-400' : 'text-ifrn-green'} />
+                                        <div>
+                                            <p className={`text-sm font-bold ${book.status === 'Devolvido' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{book.title}</p>
+                                            {book.status === 'Devolvido' && (
+                                                <p className="text-[10px] text-green-600 font-bold uppercase">Já devolvido em {new Date(book.returnDate!).toLocaleDateString('pt-BR')}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {book.status !== 'Devolvido' && (
+                                        <input
+                                            type="checkbox"
+                                            id={`book-${book.id}`}
+                                            className="w-5 h-5 accent-ifrn-green rounded border-gray-300"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="pt-6 flex justify-end gap-3 border-t">
+                            <button
+                                onClick={() => { setShowPartialReturnModal(false); setSelectedLoanForReturn(null); }}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const selectedBookIds: string[] = [];
+                                    selectedLoanForReturn.books.forEach(b => {
+                                        const cb = document.getElementById(`book-${b.id}`) as HTMLInputElement;
+                                        if (cb && cb.checked) selectedBookIds.push(b.id);
+                                    });
+                                    if (selectedBookIds.length === 0) {
+                                        alert('Selecione pelo menos um livro para devolver.');
+                                        return;
+                                    }
+                                    handlePartialReturn(selectedLoanForReturn, selectedBookIds);
+                                }}
+                                disabled={isLoading}
+                                className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-bold flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Devolução'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );
