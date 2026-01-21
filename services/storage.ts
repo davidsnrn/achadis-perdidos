@@ -57,12 +57,27 @@ export const StorageService = {
 
   // Users
   getUsers: async (): Promise<User[]> => {
-    const { data, error } = await supabase.from('users').select('*');
-    if (error) {
-      console.error('Error fetching users:', error);
-      return [];
+    let allData: User[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .range(from, from + limit - 1);
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        break;
+      }
+
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
     }
-    return data || [];
+    return allData;
   },
 
   saveUser: async (user: User, actorName: string) => {
@@ -147,9 +162,23 @@ export const StorageService = {
 
   // People
   getPeople: async (): Promise<Person[]> => {
-    const { data, error } = await supabase.from('people').select('*');
-    if (error) return [];
-    return data || [];
+    let allData: Person[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('people')
+        .select('*')
+        .range(from, from + limit - 1);
+
+      if (error) break;
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
+    }
+    return allData;
   },
 
   savePerson: async (person: Person) => {
@@ -193,19 +222,43 @@ export const StorageService = {
     }));
 
     if (toInsert.length > 0) {
-      const { error } = await supabase.from('people').insert(toInsert);
-      if (error) console.error("Erro import:", error);
+      const BATCH_SIZE = 1000;
+      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+        const batch = toInsert.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from('people').insert(batch);
+        if (error) {
+          console.error("Erro import batch:", error);
+          throw error;
+        }
+      }
     }
   },
 
   // Items
   getItems: async (): Promise<FoundItem[]> => {
-    const { data, error } = await supabase.from('items').select('*').order('id', { ascending: false });
-    if (error) {
-      console.error("Erro ao buscar itens:", error);
-      return [];
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('items')
+        .select('*')
+        .order('id', { ascending: false })
+        .range(from, from + limit - 1);
+
+      if (error) {
+        console.error("Erro ao buscar itens:", error);
+        break;
+      }
+
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
     }
-    return data.map((d: any) => ({
+
+    return allData.map((d: any) => ({
       id: d.id,
       description: d.description,
       detailedDescription: d.detailed_description,
@@ -272,9 +325,26 @@ export const StorageService = {
 
   // Reports
   getReports: async (): Promise<LostReport[]> => {
-    const { data, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
-    if (error) return [];
-    return data.map((d: any) => ({
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + limit - 1);
+
+      if (error) break;
+
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
+    }
+
+    return allData.map((d: any) => ({
       id: d.id,
       itemDescription: d.item_description,
       personId: d.person_id,
@@ -313,9 +383,26 @@ export const StorageService = {
 
   // Lockers
   getLockers: async (): Promise<Locker[]> => {
-    const { data, error } = await supabase.from('lockers').select('*').order('number', { ascending: true });
-    if (error) return [];
-    return data.map((d: any) => ({
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('lockers')
+        .select('*')
+        .order('number', { ascending: true })
+        .range(from, from + limit - 1);
+
+      if (error) break;
+
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
+    }
+
+    return allData.map((d: any) => ({
       number: d.number,
       status: d.status as LockerStatus,
       currentLoan: d.current_loan,

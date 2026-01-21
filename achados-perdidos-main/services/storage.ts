@@ -36,12 +36,31 @@ export const StorageService = {
 
   // Users
   getUsers: async (): Promise<User[]> => {
-    const { data, error } = await supabase.from('users').select('*');
-    if (error) {
-      console.error('Error fetching users:', error);
-      return [];
+    let allData: User[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += PAGE_SIZE;
+        if (data.length < PAGE_SIZE) hasMore = false;
+      } else {
+        hasMore = false;
+      }
     }
-    return data || [];
+    return allData;
   },
 
   saveUser: async (user: User, actorName: string) => {
@@ -59,7 +78,7 @@ export const StorageService = {
     const dateStr = new Date().toLocaleString('pt-BR');
 
     // Check if updating or creating
-    const { data: currentUser } = await supabase.from('users').select('*').eq('id', user.id).single();
+    const { data: currentUser } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
 
     if (currentUser) {
       // Update
@@ -102,7 +121,7 @@ export const StorageService = {
   },
 
   changePassword: async (userId: string, newPass: string, actorName: string): Promise<User | null> => {
-    const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
+    const { data: user } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
 
     if (user) {
       const dateStr = new Date().toLocaleString('pt-BR');
@@ -114,7 +133,7 @@ export const StorageService = {
         .update({ password: newPass, logs: updatedLogs })
         .eq('id', userId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (!error) return data as User;
     }
@@ -123,9 +142,31 @@ export const StorageService = {
 
   // People
   getPeople: async (): Promise<Person[]> => {
-    const { data, error } = await supabase.from('people').select('*');
-    if (error) return [];
-    return data || [];
+    let allData: Person[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('people')
+        .select('*')
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        console.error('Error fetching people:', error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += PAGE_SIZE;
+        if (data.length < PAGE_SIZE) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+    }
+    return allData;
   },
 
   savePerson: async (person: Person) => {
@@ -159,9 +200,9 @@ export const StorageService = {
   },
 
   importPeople: async (people: Person[]) => {
-    // Buscar matrículas existentes para não tentar inserir
-    const { data: existing } = await supabase.from('people').select('matricula');
-    const existingMats = new Set(existing?.map(p => p.matricula));
+    // Buscar todas as matrículas existentes para não tentar inserir duplicatas
+    const existingPeople = await StorageService.getPeople();
+    const existingMats = new Set(existingPeople.map(p => p.matricula));
 
     const toInsert = people.filter(p => !existingMats.has(p.matricula)).map(p => ({
       id: p.id,
@@ -171,21 +212,47 @@ export const StorageService = {
     }));
 
     if (toInsert.length > 0) {
-      const { error } = await supabase.from('people').insert(toInsert);
-      if (error) console.error("Erro import:", error);
+      // Inserir em lotes de 1000 para evitar limites de payload do Supabase
+      const BATCH_SIZE = 1000;
+      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+        const batch = toInsert.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from('people').insert(batch);
+        if (error) {
+          console.error(`Erro ao importar lote ${i / BATCH_SIZE}:`, error);
+        }
+      }
     }
   },
 
   // Items
   getItems: async (): Promise<FoundItem[]> => {
-    const { data, error } = await supabase.from('items').select('*').order('id', { ascending: false });
+    let allData: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
 
-    if (error) {
-      console.error("Erro ao buscar itens:", error);
-      return [];
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('items')
+        .select('*')
+        .order('id', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        console.error("Erro ao buscar itens:", error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += PAGE_SIZE;
+        if (data.length < PAGE_SIZE) hasMore = false;
+      } else {
+        hasMore = false;
+      }
     }
 
-    return data.map((d: any) => ({
+    return allData.map((d: any) => ({
       id: d.id,
       description: d.description,
       detailedDescription: d.detailed_description,
@@ -265,10 +332,33 @@ export const StorageService = {
 
   // Reports
   getReports: async (): Promise<LostReport[]> => {
-    const { data, error } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
-    if (error) return [];
+    let allData: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
 
-    return data.map((d: any) => ({
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        console.error('Error fetching reports:', error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += PAGE_SIZE;
+        if (data.length < PAGE_SIZE) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return allData.map((d: any) => ({
       id: d.id,
       itemDescription: d.item_description,
       personId: d.person_id,
@@ -308,9 +398,33 @@ export const StorageService = {
 
   // Lockers
   getLockers: async (): Promise<Locker[]> => {
-    const { data, error } = await supabase.from('lockers').select('*').order('number', { ascending: true });
-    if (error) return [];
-    return data.map((d: any) => ({
+    let allData: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('lockers')
+        .select('*')
+        .order('number', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        console.error('Error fetching lockers:', error);
+        break;
+      }
+
+      if (data && data.length > 0) {
+        allData = [...allData, ...data];
+        from += PAGE_SIZE;
+        if (data.length < PAGE_SIZE) hasMore = false;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return allData.map((d: any) => ({
       number: d.number,
       status: d.status as LockerStatus,
       currentLoan: d.current_loan,
@@ -331,8 +445,17 @@ export const StorageService = {
       maintenance_history: l.maintenanceHistory,
       location: l.location
     }));
-    const { error } = await supabase.from('lockers').upsert(payload);
-    if (error) throw error;
+
+    // Inserir em lotes de 1000
+    const BATCH_SIZE = 1000;
+    for (let i = 0; i < payload.length; i += BATCH_SIZE) {
+      const batch = payload.slice(i, i + BATCH_SIZE);
+      const { error } = await supabase.from('lockers').upsert(batch);
+      if (error) {
+        console.error(`Erro ao salvar lote de armários ${i / BATCH_SIZE}:`, error);
+        throw error;
+      }
+    }
   },
 
   updateSingleLocker: async (locker: Locker) => {

@@ -15,7 +15,7 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
   const [filterType, setFilterType] = useState<PersonType | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -78,8 +78,8 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
           i++;
         }
         if (currentRow.length > 0 || currentField) {
-           currentRow.push(currentField);
-           rows.push(currentRow);
+          currentRow.push(currentField);
+          rows.push(currentRow);
         }
         currentRow = [];
         currentField = '';
@@ -87,7 +87,7 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
         currentField += char;
       }
     }
-    
+
     if (currentField || currentRow.length > 0) {
       currentRow.push(currentField);
       rows.push(currentRow);
@@ -121,10 +121,10 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
     e.preventDefault();
     if (!editingPerson) return;
     setIsLoading(true);
-    
+
     const formData = new FormData(e.currentTarget);
     const rawName = formData.get('name') as string;
-    
+
     const updatedPerson: Person = {
       ...editingPerson,
       name: toTitleCase(rawName),
@@ -191,16 +191,16 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
         }
 
         const colsHeader = rows[headerIndex].map(c => c.trim().toLowerCase().replace(/^["']|["']$/g, ''));
-        
+
         const idxNome = colsHeader.indexOf('nome');
-        const idxMatricula = colsHeader.findIndex(c => c.includes('matrícula')); 
+        const idxMatricula = colsHeader.findIndex(c => c.includes('matrícula'));
 
         if (idxNome === -1 || idxMatricula === -1) {
           processingLog += `❌ ${file.name}: Colunas 'Nome' ou 'Matrícula' não identificadas.\n`;
           continue;
         }
 
-        let detectedType = PersonType.STUDENT; 
+        let detectedType = PersonType.STUDENT;
         if (colsHeader.includes('cargo') || colsHeader.includes('setor suap') || colsHeader.includes('funções')) {
           detectedType = PersonType.SERVER;
         } else if (colsHeader.includes('curso') || colsHeader.includes('turma')) {
@@ -217,7 +217,7 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
           const pMatricula = cols[idxMatricula];
 
           if (!pName || !pMatricula) continue;
-          
+
           const cleanName = toTitleCase(pName.trim().replace(/^["']|["']$/g, ''));
           const cleanMatricula = pMatricula.trim().replace(/^["']|["']$/g, '');
 
@@ -254,7 +254,8 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
 
   const handleDeleteAll = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (user.password !== deletePassword) {
+    const hashedPass = await StorageService.hashPassword(deletePassword);
+    if (user.password !== hashedPass) {
       alert("Senha incorreta.");
       return;
     }
@@ -302,21 +303,21 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
       {/* Top Navigation & Actions Bar */}
       <div className="flex items-center border-b border-gray-200">
         <div className="flex gap-4 items-center">
-          <button 
+          <button
             onClick={() => setActiveTab('manual')}
             className={`pb-2 px-4 font-medium text-sm border-b-2 transition-colors ${activeTab === 'manual' ? 'border-ifrn-green text-ifrn-green' : 'border-transparent text-gray-500'}`}
           >
             Cadastro Manual
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('import')}
             className={`pb-2 px-4 font-medium text-sm border-b-2 transition-colors ${activeTab === 'import' ? 'border-ifrn-green text-ifrn-green' : 'border-transparent text-gray-500'}`}
           >
             Importar CSV
           </button>
-          
+
           {canDeleteAll && people.length > 0 && (
-            <button 
+            <button
               onClick={() => setShowDeleteAllModal(true)}
               className="mb-1.5 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
               title="Excluir todas as pessoas cadastradas"
@@ -330,7 +331,7 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         {activeTab === 'manual' ? (
           <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 items-end">
-             <div className="w-full md:w-48">
+            <div className="w-full md:w-48">
               <label className="block text-xs font-semibold text-gray-500 mb-1">Matrícula</label>
               <input required value={matricula} onChange={e => setMatricula(e.target.value)} className="w-full border rounded-lg p-2.5 text-sm" placeholder="202..." />
             </div>
@@ -362,20 +363,20 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
                 </div>
               </div>
 
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept=".csv" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".csv"
                 multiple
                 onChange={handleFileChange}
               />
-              
-              <button 
-                onClick={handleSelectFiles} 
+
+              <button
+                onClick={handleSelectFiles}
                 className="w-full md:w-auto px-8 py-4 border-2 border-dashed border-ifrn-green bg-green-50 hover:bg-green-100 text-ifrn-darkGreen rounded-xl font-medium transition-all flex flex-col items-center gap-2 mx-auto"
               >
-                <Upload size={32} /> 
+                <Upload size={32} />
                 <span>Selecione arquivo(s)</span>
               </button>
             </div>
@@ -389,8 +390,8 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
                       <div className="flex items-center gap-3 overflow-hidden">
                         <FileText size={20} className="text-gray-400 flex-shrink-0" />
                         <div className="flex flex-col overflow-hidden">
-                           <span className="text-sm text-gray-700 truncate font-medium">{file.name}</span>
-                           <span className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</span>
+                          <span className="text-sm text-gray-700 truncate font-medium">{file.name}</span>
+                          <span className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</span>
                         </div>
                       </div>
                       <button onClick={() => removeFile(idx)} className="text-gray-400 hover:text-red-500 ml-2 p-1">
@@ -399,10 +400,10 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="pt-4">
-                  <button 
-                    onClick={processImport} 
+                  <button
+                    onClick={processImport}
                     disabled={isProcessing}
                     className="w-full px-8 py-3 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen font-medium shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-wait"
                   >
@@ -419,27 +420,27 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
         {/* Layout Reorganizado: Título acima, filtros à direita */}
         <div className="flex flex-col gap-4">
           <h3 className="font-bold text-gray-700 text-lg">Pessoas Cadastradas ({filtered.length})</h3>
-          
+
           <div className="flex flex-col md:flex-row justify-end items-center gap-3">
-             <div className="flex gap-2 w-full md:w-auto">
-                <select 
-                  className="text-sm border rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-ifrn-green outline-none"
-                  value={filterType}
-                  onChange={e => setFilterType(e.target.value as any)}
-                >
-                  <option value="ALL">Todos</option>
-                  {Object.values(PersonType).map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-                <input 
-                  className="text-sm border rounded-lg px-3 py-1.5 w-full md:w-56 focus:ring-2 focus:ring-ifrn-green outline-none" 
-                  placeholder="Buscar (nome, matrícula)..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-              </div>
+            <div className="flex gap-2 w-full md:w-auto">
+              <select
+                className="text-sm border rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-ifrn-green outline-none"
+                value={filterType}
+                onChange={e => setFilterType(e.target.value as any)}
+              >
+                <option value="ALL">Todos</option>
+                {Object.values(PersonType).map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <input
+                className="text-sm border rounded-lg px-3 py-1.5 w-full md:w-56 focus:ring-2 focus:ring-ifrn-green outline-none"
+                placeholder="Buscar (nome, matrícula)..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -453,8 +454,8 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {currentItems.map(p => (
-                  <tr 
-                    key={p.id} 
+                  <tr
+                    key={p.id}
                     className="hover:bg-gray-50 cursor-pointer group"
                     onClick={() => { setEditingPerson(p); setShowEditModal(true); }}
                   >
@@ -468,13 +469,13 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
                     <td className="p-3 text-center whitespace-nowrap">
                       <div className="flex justify-center gap-2">
                         <button className="text-gray-400 hover:text-gray-600 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1">
-                           <Pencil size={14} />
+                          <Pencil size={14} />
                         </button>
-                        <button 
+                        <button
                           onClick={(e) => handleDelete(e, p.id)}
                           className="text-gray-400 hover:text-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1"
                         >
-                           <Trash2 size={14} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -483,31 +484,31 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
               </tbody>
             </table>
           </div>
-          
+
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50">
-               <span className="text-xs text-gray-500">
-                 Mostrando {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filtered.length)} de {filtered.length}
-               </span>
-               <div className="flex items-center gap-2">
-                 <button 
-                   onClick={prevPage} 
-                   disabled={currentPage === 1}
-                   className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   <ChevronLeft size={20} className="text-gray-600" />
-                 </button>
-                 <span className="text-sm font-medium text-gray-700">
-                   Página {currentPage} de {totalPages}
-                 </span>
-                 <button 
-                   onClick={nextPage} 
-                   disabled={currentPage === totalPages}
-                   className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   <ChevronRight size={20} className="text-gray-600" />
-                 </button>
-               </div>
+              <span className="text-xs text-gray-500">
+                Mostrando {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filtered.length)} de {filtered.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={20} className="text-gray-600" />
+                </button>
+                <span className="text-sm font-medium text-gray-700">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={20} className="text-gray-600" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -529,7 +530,7 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
 
       <Modal isOpen={showDeleteAllModal} onClose={() => { setShowDeleteAllModal(false); setDeletePassword(''); }} title="Confirmar Exclusão em Massa">
         <form onSubmit={handleDeleteAll} className="space-y-4">
-          <div className="bg-red-50 text-red-800 p-4 rounded-lg text-sm mb-4 border border-red-200"><p className="font-bold flex items-center gap-2"><AlertTriangle size={16}/> Ação Irreversível</p><p className="mt-1">Você está prestes a excluir <strong>TODAS</strong> as pessoas cadastradas.</p><p>Esta ação não pode ser desfeita.</p></div>
+          <div className="bg-red-50 text-red-800 p-4 rounded-lg text-sm mb-4 border border-red-200"><p className="font-bold flex items-center gap-2"><AlertTriangle size={16} /> Ação Irreversível</p><p className="mt-1">Você está prestes a excluir <strong>TODAS</strong> as pessoas cadastradas.</p><p>Esta ação não pode ser desfeita.</p></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Sua Senha</label><input type="password" required value={deletePassword} onChange={e => setDeletePassword(e.target.value)} className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Confirme sua senha para continuar..." autoFocus /></div>
           <div className="pt-4 flex justify-end gap-3 border-t"><button type="button" onClick={() => { setShowDeleteAllModal(false); setDeletePassword(''); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button><button type="submit" className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold flex items-center gap-2"><Trash2 size={18} /> Confirmar Exclusão</button></div>
         </form>

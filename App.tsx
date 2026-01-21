@@ -285,7 +285,8 @@ const App: React.FC = () => {
 
   const executeConfigAction = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || user.password !== confirmationPassword) {
+    const hashedPass = await StorageService.hashPassword(confirmationPassword);
+    if (!user || user.password !== hashedPass) {
       alert("Senha incorreta.");
       return;
     }
