@@ -47,12 +47,15 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
             if (searchChunks.length === 0) return [];
 
             return students.filter(s => {
+                const studentReg = s.registration.toLowerCase();
+                const studentName = s.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                const studentStr = `${studentReg} ${studentName}`;
+
                 return searchChunks.some(chunk => {
-                    const normalizedChunk = chunk.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                    const studentReg = s.registration.toLowerCase();
-                    const studentName = s.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                    // Usamos includes para ambos para permitir busca parcial enquanto digita
-                    return studentReg.includes(normalizedChunk) || studentName.includes(normalizedChunk);
+                    const terms = chunk.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/).filter(t => t.length > 0);
+                    if (terms.length === 0) return false;
+                    // Todos os termos do chunk devem estar presentes no estudante (E lógico)
+                    return terms.every(term => studentStr.includes(term));
                 });
             }).slice(0, 50);
         }
