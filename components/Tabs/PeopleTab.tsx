@@ -175,6 +175,13 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
     const newPeople: Person[] = [];
     let processingLog = '';
 
+    const existingMatriculas = new Set(people.map(p => p.matricula));
+    const existingNames = new Set(people.map(p => normalizeText(p.name)));
+
+    let totalInFiles = 0;
+    let duplicatesFound = 0;
+    let newRecords = 0;
+
     try {
       for (const file of selectedFiles) {
         const text = await file.text();
@@ -224,24 +231,38 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
           if (cleanName.toLowerCase() === 'nome') continue;
           if (cleanName.length < 2 || cleanMatricula.length < 2) continue;
 
+          totalInFiles++;
+          const normName = normalizeText(cleanName);
+
+          if (existingMatriculas.has(cleanMatricula) || existingNames.has(normName)) {
+            duplicatesFound++;
+            continue;
+          }
+
           newPeople.push({
             id: Math.random().toString(36).substr(2, 9),
             name: cleanName,
             matricula: cleanMatricula,
             type: detectedType
           });
+
+          existingMatriculas.add(cleanMatricula);
+          existingNames.add(normName);
+          newRecords++;
           fileCount++;
         }
         processingLog += `✅ ${file.name}: ${fileCount} registros de ${detectedType}.\n`;
       }
 
+      const summary = `Total no arquivo: ${totalInFiles}\nJá cadastrados (ignora): ${duplicatesFound}\nNovos importados: ${newRecords}`;
+
       if (newPeople.length > 0) {
         await StorageService.importPeople(newPeople);
         onUpdate();
         setSelectedFiles([]);
-        alert(`Importação concluída!\n\n${processingLog}\nTotal importado: ${newPeople.length}`);
+        alert(`Importação concluída!\n\n${processingLog}\n${summary}`);
       } else {
-        alert(`Nenhum dado importado.\n\n${processingLog}`);
+        alert(`Nenhum dado novo para importar.\n\n${processingLog}\n${summary}`);
       }
 
     } catch (err) {
