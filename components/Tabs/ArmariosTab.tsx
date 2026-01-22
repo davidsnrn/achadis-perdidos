@@ -123,7 +123,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
     const l = lockers.find(loc => loc.number === lockerNumber);
     if (!l || !l.currentLoan) return;
 
-    const finishedLoan = { ...l.currentLoan, returnDate: new Date().toLocaleDateString('pt-BR') };
+    const finishedLoan = { ...l.currentLoan, returnDate: new Date().toLocaleDateString('en-CA') };
     const updatedLocker = {
       ...l,
       status: LockerStatus.AVAILABLE,
@@ -171,7 +171,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
     }
     if (!oldLocker || !oldLocker.currentLoan) return;
 
-    const todayStr = new Date().toLocaleDateString('pt-BR');
+    const todayStr = new Date().toLocaleDateString('en-CA');
     const finishedOldLoan = {
       ...oldLocker.currentLoan,
       returnDate: todayStr,
@@ -221,7 +221,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
 
     const newRecord: MaintenanceData = {
       problem,
-      registeredAt: new Date().toISOString().split('T')[0],
+      registeredAt: new Date().toLocaleDateString('en-CA'),
       registeredBy: user?.name || 'Sistema'
     };
 
@@ -249,7 +249,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
 
     const finishedRecord: MaintenanceData = {
       ...l.maintenanceRecord,
-      resolvedAt: new Date().toISOString().split('T')[0],
+      resolvedAt: new Date().toLocaleDateString('en-CA'),
       resolvedBy: user?.name || 'Sistema',
       solution: 'Manutenção concluída'
     };

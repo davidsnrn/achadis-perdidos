@@ -25,13 +25,27 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const PAGE_SIZE = 20;
 
+    const getLocalDate = (dateStr: string) => {
+        if (!dateStr) return new Date(NaN);
+        if (dateStr.includes('-')) {
+            const [y, m, d] = dateStr.split('-');
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        }
+        const [d, m, y] = dateStr.split('/');
+        return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    };
+
+    const formatDisplayDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        if (dateStr.includes('-')) {
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+        return dateStr;
+    };
+
     const reportData = useMemo(() => {
         const entries: ReportEntry[] = [];
-
-        const getLocalDate = (dateStr: string) => {
-            const [d, m, y] = dateStr.split('/');
-            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-        };
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -283,7 +297,7 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                                                 {entry.actionType}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-4 text-sm font-bold text-slate-500 text-right">{entry.actionDate}</td>
+                                        <td className="py-4 px-4 text-sm font-bold text-slate-500 text-right">{formatDisplayDate(entry.actionDate)}</td>
                                     </tr>
                                 ))
                             ) : (

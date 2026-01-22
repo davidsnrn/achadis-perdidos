@@ -22,6 +22,16 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
   onUpdateObservation
 }) => {
   const [isEditingObs, setIsEditingObs] = useState(false);
+
+  const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    if (dateStr.includes('-')) {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    return dateStr;
+  };
+
   const [tempObs, setTempObs] = useState('');
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [maintenanceReason, setMaintenanceReason] = useState('');
@@ -121,7 +131,7 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Retirada em</p>
-                      <p className="text-sm font-bold text-slate-700">{locker.currentLoan.loanDate}</p>
+                      <p className="text-sm font-bold text-slate-700">{formatDisplayDate(locker.currentLoan.loanDate)}</p>
                     </div>
                   </div>
 
@@ -174,7 +184,7 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                   <div className="p-4 bg-slate-200/50 border border-slate-300 rounded-xl text-slate-800">
                     <div className="flex justify-between items-start mb-2">
                       <p className="text-[10px] font-black text-slate-500 uppercase">Diagnóstico / Motivo</p>
-                      <span className="text-[9px] font-bold text-slate-400">{locker.maintenanceRecord.registeredAt}</span>
+                      <span className="text-[9px] font-bold text-slate-400">{formatDisplayDate(locker.maintenanceRecord.registeredAt)}</span>
                     </div>
                     <p className="text-sm font-bold leading-relaxed">{locker.maintenanceRecord.problem}</p>
                     {locker.maintenanceRecord.registeredBy && (
@@ -234,9 +244,13 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                     <div className="space-y-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                       {[...locker.loanHistory]
                         .sort((a, b) => {
-                          const parseDate = (d: string) => {
-                            if (!d) return 0;
-                            const parts = d.split('/');
+                          const parseDate = (dateStr: string) => {
+                            if (!dateStr) return 0;
+                            if (dateStr.includes('-')) {
+                              const [y, m, d] = dateStr.split('-');
+                              return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).getTime();
+                            }
+                            const parts = dateStr.split('/');
                             if (parts.length !== 3) return 0;
                             return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
                           };
@@ -293,7 +307,7 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                                 <p className="text-[9px] text-slate-400 font-bold uppercase truncate">Resp: {m.registeredBy || 'Sist.'} {m.resolvedBy ? `→ Resolvido por ${m.resolvedBy}` : ''}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-slate-500 font-black mb-1 whitespace-nowrap">{new Date(m.registeredAt).toLocaleDateString('pt-BR')} — {m.resolvedAt ? new Date(m.resolvedAt).toLocaleDateString('pt-BR') : '...'}</p>
+                                <p className="text-slate-500 font-black mb-1 whitespace-nowrap">{formatDisplayDate(m.registeredAt)} — {m.resolvedAt ? formatDisplayDate(m.resolvedAt) : '...'}</p>
                                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${m.resolvedAt ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{m.resolvedAt ? 'Resolvido' : 'Em curso'}</span>
                               </div>
                             </div>

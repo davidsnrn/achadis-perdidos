@@ -21,7 +21,7 @@ const LockerForm: React.FC<LockerFormProps> = ({ selectedLocker, students, onSub
     registrationNumber: '',
     studentName: '',
     studentClass: '',
-    loanDate: new Date().toISOString().split('T')[0],
+    loanDate: new Date().toLocaleDateString('en-CA'), // Formato YYYY-MM-DD local
     returnDate: '',
     observation: '',
   });
