@@ -21,7 +21,11 @@ export interface LoanData {
   studentName: string; // Nome do Aluno
   studentClass: string; // Turma do Aluno
   loanDate: string; // Data do Empréstimo
+  loanTime?: string; // Hora do Empréstimo
+  loanBy?: string; // Quem realizou o empréstimo
   returnDate?: string; // Data da Devolução
+  returnTime?: string; // Hora da Devolução
+  returnedBy?: string; // Quem realizou a devolução
   observation: string; // Observação
 }
 

@@ -131,7 +131,10 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Retirada em</p>
-                      <p className="text-sm font-bold text-slate-700">{formatDisplayDate(locker.currentLoan.loanDate)}</p>
+                      <p className="text-sm font-bold text-slate-700">{formatDisplayDate(locker.currentLoan.loanDate)} às {locker.currentLoan.loanTime || '--:--'}</p>
+                      {locker.currentLoan.loanBy && (
+                        <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Por: {locker.currentLoan.loanBy}</p>
+                      )}
                     </div>
                   </div>
 
@@ -254,7 +257,11 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                             if (parts.length !== 3) return 0;
                             return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).getTime();
                           };
-                          return parseDate(b.loanDate) - parseDate(a.loanDate);
+                          const timeA = a.loanTime || '00:00';
+                          const timeB = b.loanTime || '00:00';
+                          const dateDiff = parseDate(b.loanDate) - parseDate(a.loanDate);
+                          if (dateDiff !== 0) return dateDiff;
+                          return timeB.localeCompare(timeA);
                         })
                         .map((item, idx) => (
                           <div key={idx} className="flex flex-col gap-2 border-b border-slate-50 pb-4 last:border-0 last:pb-0">
@@ -274,7 +281,10 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                                 <p className="text-slate-400 font-bold">{item.registrationNumber} • {item.studentClass}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-slate-500 font-black mb-1 whitespace-nowrap">{item.loanDate} — {item.returnDate || '...'}</p>
+                                <p className="text-slate-500 font-black mb-0.5 whitespace-nowrap text-[11px]">{formatDisplayDate(item.loanDate)} {item.loanTime ? `às ${item.loanTime}` : ''} — {item.returnDate ? formatDisplayDate(item.returnDate) : '...'}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">
+                                  {item.loanBy ? `Empr: ${item.loanBy}` : ''} {item.returnedBy ? `• Ret: ${item.returnedBy}` : ''}
+                                </p>
                                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${item.returnDate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.returnDate ? 'Concluído' : 'Ativo'}</span>
                               </div>
                             </div>

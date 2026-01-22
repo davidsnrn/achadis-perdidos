@@ -7,9 +7,10 @@ interface LockerFormProps {
   students: Student[];
   onSubmit: (data: LoanData) => void;
   onCancel: () => void;
+  operatorName?: string;
 }
 
-const LockerForm: React.FC<LockerFormProps> = ({ selectedLocker, students, onSubmit, onCancel }) => {
+const LockerForm: React.FC<LockerFormProps> = ({ selectedLocker, students, onSubmit, onCancel, operatorName }) => {
   const [studentSearch, setStudentSearch] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -24,6 +25,8 @@ const LockerForm: React.FC<LockerFormProps> = ({ selectedLocker, students, onSub
     loanDate: new Date().toLocaleDateString('en-CA'), // Formato YYYY-MM-DD local
     returnDate: '',
     observation: '',
+    loanBy: operatorName || '',
+    loanTime: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
   });
 
 
@@ -79,7 +82,8 @@ const LockerForm: React.FC<LockerFormProps> = ({ selectedLocker, students, onSub
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.studentName && formData.registrationNumber && formData.lockerNumber) {
-      onSubmit(formData as LoanData);
+      const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      onSubmit({ ...formData, loanTime: now } as LoanData);
     }
   };
 

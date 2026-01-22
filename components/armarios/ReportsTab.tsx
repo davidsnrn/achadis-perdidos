@@ -14,6 +14,8 @@ interface ReportEntry {
     studentClass: string;
     actionType: 'Empréstimo' | 'Devolução';
     actionDate: string;
+    actionTime?: string;
+    operatorName?: string;
 }
 
 const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
@@ -61,7 +63,9 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                     studentName: locker.currentLoan.studentName,
                     studentClass: locker.currentLoan.studentClass,
                     actionType: 'Empréstimo',
-                    actionDate: locker.currentLoan.loanDate
+                    actionDate: locker.currentLoan.loanDate,
+                    actionTime: locker.currentLoan.loanTime,
+                    operatorName: locker.currentLoan.loanBy
                 });
             }
 
@@ -72,7 +76,9 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                     studentName: loan.studentName,
                     studentClass: loan.studentClass,
                     actionType: 'Empréstimo',
-                    actionDate: loan.loanDate
+                    actionDate: loan.loanDate,
+                    actionTime: loan.loanTime,
+                    operatorName: loan.loanBy
                 });
                 if (loan.returnDate) {
                     entries.push({
@@ -81,7 +87,9 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                         studentName: loan.studentName,
                         studentClass: loan.studentClass,
                         actionType: 'Devolução',
-                        actionDate: loan.returnDate
+                        actionDate: loan.returnDate,
+                        actionTime: loan.returnTime,
+                        operatorName: loan.returnedBy
                     });
                 }
             });
@@ -159,6 +167,9 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
             const dateB = getLocalDate(b.actionDate).getTime();
             if (isNaN(dateA)) return 1;
             if (isNaN(dateB)) return -1;
+            if (dateB === dateA && a.actionTime && b.actionTime) {
+                return b.actionTime.localeCompare(a.actionTime);
+            }
             return dateB - dateA;
         });
     }, [lockers, dateFilterType, startDate, endDate, studentFilter, actionTypeFilter]);
@@ -280,7 +291,8 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                                 <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Matrícula</th>
                                 <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do Aluno</th>
                                 <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Turma</th>
-                                <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tipo de Ação</th>
+                                <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tipo</th>
+                                <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Operador / Hora</th>
                                 <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Data</th>
                             </tr>
                         </thead>
@@ -291,18 +303,26 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                                         <td className="py-4 px-2 font-black text-slate-800">#{entry.lockerNumber}</td>
                                         <td className="py-4 px-4 text-sm font-medium text-slate-600">{entry.registration}</td>
                                         <td className="py-4 px-4 text-sm font-black text-slate-800 uppercase">{entry.studentName}</td>
-                                        <td className="py-4 px-4 text-sm font-bold text-slate-500">{entry.studentClass}</td>
-                                        <td className="py-4 px-4 text-center">
+                                        <td className="py-4 px-2 text-sm font-bold text-slate-500">{entry.studentClass}</td>
+                                        <td className="py-4 px-2 text-center">
                                             <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${entry.actionType === 'Empréstimo' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>
                                                 {entry.actionType}
                                             </span>
+                                        </td>
+                                        <td className="py-4 px-4 text-right min-w-[120px]">
+                                            <p className="text-[10px] font-black text-slate-700 uppercase truncate max-w-[100px] ml-auto" title={entry.operatorName}>
+                                                {entry.operatorName || '—'}
+                                            </p>
+                                            <p className="text-[9px] font-bold text-slate-400">
+                                                {entry.actionTime || '—'}
+                                            </p>
                                         </td>
                                         <td className="py-4 px-4 text-sm font-bold text-slate-500 text-right">{formatDisplayDate(entry.actionDate)}</td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="py-20 text-center">
+                                    <td colSpan={7} className="py-20 text-center">
                                         <div className="flex flex-col items-center gap-3 text-slate-300">
                                             <FileText size={48} />
                                             <p className="font-black uppercase tracking-widest text-xs">Nenhum registro encontrado</p>

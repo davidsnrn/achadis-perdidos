@@ -123,7 +123,13 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
     const l = lockers.find(loc => loc.number === lockerNumber);
     if (!l || !l.currentLoan) return;
 
-    const finishedLoan = { ...l.currentLoan, returnDate: new Date().toLocaleDateString('en-CA') };
+    const now = new Date();
+    const finishedLoan = {
+      ...l.currentLoan,
+      returnDate: now.toLocaleDateString('en-CA'),
+      returnTime: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      returnedBy: user?.name || 'Sistema'
+    };
     const updatedLocker = {
       ...l,
       status: LockerStatus.AVAILABLE,
@@ -171,10 +177,15 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
     }
     if (!oldLocker || !oldLocker.currentLoan) return;
 
-    const todayStr = new Date().toLocaleDateString('en-CA');
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA');
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
     const finishedOldLoan = {
       ...oldLocker.currentLoan,
       returnDate: todayStr,
+      returnTime: timeStr,
+      returnedBy: user?.name || 'Sistema',
       observation: `${oldLocker.currentLoan.observation || ''} (Troca para #${newNumber})`.trim()
     };
 
@@ -184,6 +195,8 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
       lockerNumber: newNumber,
       physicalLocation: targetLocker.location,
       loanDate: todayStr,
+      loanTime: timeStr,
+      loanBy: user?.name || 'Sistema',
       returnDate: oldLocker.currentLoan.returnDate,
       observation: `${oldLocker.currentLoan.observation || ''} (Troca do #${oldNumber})`.trim()
     };
@@ -481,7 +494,7 @@ export const ArmariosTab: React.FC<ArmariosTabProps> = ({ user, people, lockers,
         )}
 
         {currentView === 'loan-form' && selectedLocker && (
-          <LockerForm selectedLocker={selectedLocker} students={students} onSubmit={handleLoanSubmit} onCancel={() => setCurrentView('dashboard')} />
+          <LockerForm selectedLocker={selectedLocker} students={students} onSubmit={handleLoanSubmit} onCancel={() => setCurrentView('dashboard')} operatorName={user?.name} />
         )}
       </div>
 
