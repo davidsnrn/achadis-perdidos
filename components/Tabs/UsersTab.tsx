@@ -252,6 +252,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                 <th className="p-4 whitespace-nowrap">Matrícula (Login)</th>
                 <th className="p-4 whitespace-nowrap">Nome</th>
                 <th className="p-4 whitespace-nowrap">Nível de Acesso</th>
+                <th className="p-4 whitespace-nowrap text-center">Módulos Liberados</th>
                 <th className="p-4 text-center whitespace-nowrap">Ações</th>
               </tr>
             </thead>
@@ -275,6 +276,27 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                       }`}>
                       {u.level}
                     </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="flex justify-center gap-1.5">
+                      {[
+                        { id: 'achados', icon: <Package size={14} />, label: 'Achados' },
+                        { id: 'armarios', icon: <Key size={14} />, label: 'Armários' },
+                        { id: 'livros', icon: <BookOpen size={14} />, label: 'Livros' },
+                        { id: 'nadaconsta', icon: <FileCheck size={14} />, label: 'Nada Consta' }
+                      ].map(mod => {
+                        const hasAccess = u.level !== UserLevel.STANDARD || (u.permissions && u.permissions[mod.id as keyof typeof u.permissions]);
+                        return (
+                          <div
+                            key={mod.id}
+                            title={`${mod.label}: ${hasAccess ? 'Liberado' : 'Bloqueado'}`}
+                            className={`p-1.5 rounded-lg transition-all ${hasAccess ? 'text-green-600 bg-green-50 shadow-sm border border-green-100' : 'text-gray-300 bg-gray-50 border border-transparent opacity-40'}`}
+                          >
+                            {mod.icon}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex justify-center gap-2">
