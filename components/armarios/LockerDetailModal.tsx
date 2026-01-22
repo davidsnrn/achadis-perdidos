@@ -131,9 +131,9 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">Retirada em</p>
-                      <p className="text-sm font-bold text-slate-700">{formatDisplayDate(locker.currentLoan.loanDate)} às {locker.currentLoan.loanTime || '--:--'}</p>
+                      <p className="text-sm font-bold text-slate-700">{formatDisplayDate(locker.currentLoan.loanDate)} {locker.currentLoan.loanTime ? `às ${locker.currentLoan.loanTime}` : ''}</p>
                       {locker.currentLoan.loanBy && (
-                        <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Por: {locker.currentLoan.loanBy}</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Operador: {locker.currentLoan.loanBy}</p>
                       )}
                     </div>
                   </div>
@@ -281,9 +281,12 @@ const LockerDetailModal: React.FC<LockerDetailModalProps> = ({
                                 <p className="text-slate-400 font-bold">{item.registrationNumber} • {item.studentClass}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-slate-500 font-black mb-0.5 whitespace-nowrap text-[11px]">{formatDisplayDate(item.loanDate)} {item.loanTime ? `às ${item.loanTime}` : ''} — {item.returnDate ? formatDisplayDate(item.returnDate) : '...'}</p>
+                                <p className="text-slate-500 font-black mb-0.5 whitespace-nowrap text-[11px]">
+                                  {formatDisplayDate(item.loanDate)} {item.loanTime ? `às ${item.loanTime}` : ''}
+                                  {item.returnDate ? ` — ${formatDisplayDate(item.returnDate)}${item.returnTime ? ` às ${item.returnTime}` : ''}` : ' — ...'}
+                                </p>
                                 <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">
-                                  {item.loanBy ? `Empr: ${item.loanBy}` : ''} {item.returnedBy ? `• Ret: ${item.returnedBy}` : ''}
+                                  {item.loanBy ? `Op: ${item.loanBy}` : ''} {item.returnedBy ? `• Ret por: ${item.returnedBy}` : ''}
                                 </p>
                                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${item.returnDate ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.returnDate ? 'Concluído' : 'Ativo'}</span>
                               </div>

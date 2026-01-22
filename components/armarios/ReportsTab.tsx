@@ -292,8 +292,8 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                                 <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do Aluno</th>
                                 <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Turma</th>
                                 <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Tipo</th>
-                                <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Operador / Hora</th>
-                                <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Data</th>
+                                <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Operador</th>
+                                <th className="py-4 px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Data / Hora</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -309,15 +309,20 @@ const ReportsTab: React.FC<ReportsTabProps> = ({ lockers }) => {
                                                 {entry.actionType}
                                             </span>
                                         </td>
-                                        <td className="py-4 px-4 text-right min-w-[120px]">
-                                            <p className="text-[10px] font-black text-slate-700 uppercase truncate max-w-[100px] ml-auto" title={entry.operatorName}>
+                                        <td className="py-4 px-4 text-right">
+                                            <p className="text-[10px] font-black text-slate-700 uppercase truncate max-w-[120px] ml-auto" title={entry.operatorName}>
                                                 {entry.operatorName || '—'}
                                             </p>
+                                        </td>
+                                        <td className="py-4 px-4 text-right">
+                                            <p className="text-sm font-bold text-slate-500 whitespace-nowrap">
+                                                {formatDisplayDate(entry.actionDate)}
+                                            </p>
                                             <p className="text-[9px] font-bold text-slate-400">
-                                                {entry.actionTime || '—'}
+                                                {entry.actionTime || ''}
                                             </p>
                                         </td>
-                                        <td className="py-4 px-4 text-sm font-bold text-slate-500 text-right">{formatDisplayDate(entry.actionDate)}</td>
+
                                     </tr>
                                 ))
                             ) : (
