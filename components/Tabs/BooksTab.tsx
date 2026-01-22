@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { Book, User } from '../../types';
+import { Book, User, BookLoan, BookLoanStatus } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Plus, Search, Book as BookIcon, Trash2, Pencil, Loader2, Download, Upload, FileText, CheckCircle, X } from 'lucide-react';
+import { Plus, Search, Book as BookIcon, Trash2, Pencil, Loader2, Download, Upload, FileText, CheckCircle, X, ArrowRight } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
     books: Book[];
+    bookLoans: BookLoan[];
     onUpdate: () => void;
     user: User;
 }
 
-export const BooksTab: React.FC<Props> = ({ books, onUpdate, user }) => {
+export const BooksTab: React.FC<Props> = ({ books, bookLoans, onUpdate, user }) => {
     const [search, setSearch] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
@@ -24,6 +25,16 @@ export const BooksTab: React.FC<Props> = ({ books, onUpdate, user }) => {
     const [series, setSeries] = useState('');
     const [publisher, setPublisher] = useState('');
     const [quantity, setQuantity] = useState('Indeterminado');
+
+    const getBorrowedCount = (bookId: string) => {
+        return bookLoans.reduce((total, loan) => {
+            if (loan.status === BookLoanStatus.ACTIVE) {
+                const bookInLoan = loan.books.find(b => b.id === bookId && b.status !== 'Devolvido');
+                if (bookInLoan) return total + 1;
+            }
+            return total;
+        }, 0);
+    };
 
     const resetForm = () => {
         setEdition('');
@@ -130,7 +141,8 @@ export const BooksTab: React.FC<Props> = ({ books, onUpdate, user }) => {
                                 <th className="p-4">Título</th>
                                 <th className="p-4">Série</th>
                                 <th className="p-4">Editora</th>
-                                <th className="p-4">Qtd</th>
+                                <th className="p-4 text-center">QTD EMP.</th>
+                                <th className="p-4 text-center">QTD ATUAL</th>
                                 <th className="p-4 text-center">Ações</th>
                             </tr>
                         </thead>
@@ -148,7 +160,20 @@ export const BooksTab: React.FC<Props> = ({ books, onUpdate, user }) => {
                                         <td className="p-4 font-bold text-gray-800">{book.title}</td>
                                         <td className="p-4">{book.series}</td>
                                         <td className="p-4">{book.publisher}</td>
-                                        <td className="p-4 font-medium">{book.quantity}</td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getBorrowedCount(book.id) > 0 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {getBorrowedCount(book.id)}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-center font-bold">
+                                            {book.quantity === 'Indeterminado' ? (
+                                                <span className="text-gray-400">Indeterminado</span>
+                                            ) : (
+                                                <span className={parseInt(book.quantity) - getBorrowedCount(book.id) <= 0 ? 'text-red-600' : 'text-ifrn-darkGreen'}>
+                                                    {Math.max(0, parseInt(book.quantity) - getBorrowedCount(book.id))}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="p-4">
                                             <div className="flex justify-center gap-2">
                                                 <button
@@ -249,15 +274,24 @@ export const BooksTab: React.FC<Props> = ({ books, onUpdate, user }) => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Quantidade</label>
-                        <input
-                            required
-                            value={quantity}
-                            onChange={e => setQuantity(e.target.value)}
-                            className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-ifrn-green"
-                            placeholder="Ex: 50 ou Indeterminado"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Qtd Atual (Estoque Total)</label>
+                            <input
+                                required
+                                value={quantity}
+                                onChange={e => setQuantity(e.target.value)}
+                                className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-ifrn-green"
+                                placeholder="Ex: 50 ou Indeterminado"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Qtd Emprestada (Auto)</label>
+                            <div className="w-full border bg-gray-50 rounded-lg p-2.5 text-sm text-gray-500 font-bold flex items-center justify-between">
+                                {editingBook ? getBorrowedCount(editingBook.id) : 0}
+                                <FileText size={16} className="text-gray-400" />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="pt-4 flex justify-end gap-3 border-t">
