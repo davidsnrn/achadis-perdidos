@@ -28,6 +28,12 @@ export interface User {
   name: string;
   password?: string; // In a real app, never store plain text
   level: UserLevel;
+  permissions?: {
+    achados?: boolean;
+    armarios?: boolean;
+    livros?: boolean;
+    nadaconsta?: boolean;
+  };
   logs?: string[];
 }
 

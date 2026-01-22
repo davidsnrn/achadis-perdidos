@@ -107,6 +107,7 @@ export const StorageService = {
         matricula: user.matricula,
         name: user.name,
         level: user.level,
+        permissions: user.permissions,
         password: finalPassword,
         logs: updatedLogs
       }).eq('id', user.id);
@@ -123,6 +124,7 @@ export const StorageService = {
         name: user.name,
         password: hashedPassword,
         level: user.level,
+        permissions: user.permissions,
         logs: [logMessage]
       });
 

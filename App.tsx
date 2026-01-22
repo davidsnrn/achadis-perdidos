@@ -149,12 +149,7 @@ const App: React.FC = () => {
         } else {
           setUser(sessionUser);
           StorageService.updateLastActive();
-
-          if (sessionUser.level === UserLevel.STANDARD) {
-            setCurrentSystem('achados');
-            setActiveTab('achados');
-            setShowModuleSelector(false);
-          }
+          setShowModuleSelector(true);
         }
       }
     };
@@ -212,15 +207,7 @@ const App: React.FC = () => {
         StorageService.setSessionUser(loggedUser);
         setUser(loggedUser);
         setLoginError('');
-
-        // Se for padrão, vai direto para achados e não mostra o seletor
-        if (loggedUser.level === UserLevel.STANDARD) {
-          setCurrentSystem('achados');
-          setActiveTab('achados');
-          setShowModuleSelector(false);
-        } else {
-          setShowModuleSelector(true);
-        }
+        setShowModuleSelector(true);
       } else {
         setLoginError('Credenciais inválidas. Tente novamente.');
       }
@@ -435,100 +422,108 @@ const App: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Achados e Perdidos */}
-            <button
-              onClick={() => {
-                setCurrentSystem('achados');
-                setActiveTab('achados');
-                setShowModuleSelector(false);
-              }}
-              className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-ifrn-green transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-ifrn-green/5 transition-colors">
-                <Package size={120} />
-              </div>
-              <div className="relative z-10">
-                <div className="bg-ifrn-green w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-green-100 group-hover:scale-110 transition-transform">
-                  <Package size={28} />
+            {(!user.permissions || user.permissions.achados) && (
+              <button
+                onClick={() => {
+                  setCurrentSystem('achados');
+                  setActiveTab('achados');
+                  setShowModuleSelector(false);
+                }}
+                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-ifrn-green transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-ifrn-green/5 transition-colors">
+                  <Package size={120} />
                 </div>
-                <h3 className="text-xl font-black text-gray-800 mb-2">Achados e Perdidos</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">Gerencie itens encontrados e devoluções.</p>
-                <div className="mt-6 flex items-center gap-2 text-ifrn-green font-bold text-sm">
-                  Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                <div className="relative z-10">
+                  <div className="bg-ifrn-green w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-green-100 group-hover:scale-110 transition-transform">
+                    <Package size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-800 mb-2">Achados e Perdidos</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">Gerencie itens encontrados e devoluções.</p>
+                  <div className="mt-6 flex items-center gap-2 text-ifrn-green font-bold text-sm">
+                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            )}
 
             {/* Gestão de Armários */}
-            <button
-              onClick={() => {
-                setCurrentSystem('armarios');
-                setActiveTab('armarios');
-                setShowModuleSelector(false);
-              }}
-              className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-ifrn-darkGreen transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-ifrn-darkGreen/5 transition-colors">
-                <Key size={120} />
-              </div>
-              <div className="relative z-10">
-                <div className="bg-ifrn-darkGreen w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-emerald-100 group-hover:scale-110 transition-transform">
-                  <Key size={28} />
+            {(!user.permissions || user.permissions.armarios) && (
+              <button
+                onClick={() => {
+                  setCurrentSystem('armarios');
+                  setActiveTab('armarios');
+                  setShowModuleSelector(false);
+                }}
+                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-ifrn-darkGreen transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-ifrn-darkGreen/5 transition-colors">
+                  <Key size={120} />
                 </div>
-                <h3 className="text-xl font-black text-gray-800 mb-2">Gestão de Armários</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">Controle empréstimos e ocupação.</p>
-                <div className="mt-6 flex items-center gap-2 text-ifrn-darkGreen font-bold text-sm">
-                  Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                <div className="relative z-10">
+                  <div className="bg-ifrn-darkGreen w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-emerald-100 group-hover:scale-110 transition-transform">
+                    <Key size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-800 mb-2">Gestão de Armários</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">Controle empréstimos e ocupação.</p>
+                  <div className="mt-6 flex items-center gap-2 text-ifrn-darkGreen font-bold text-sm">
+                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            )}
 
             {/* Livros PNLD */}
-            <button
-              onClick={() => {
-                setCurrentSystem('livros');
-                setActiveTab('livros-catalogo');
-                setShowModuleSelector(false);
-              }}
-              className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-orange-600 transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute right-0 top-0 p-6 text-orange-50 group-hover:text-orange-600/5 transition-colors">
-                <BookOpen size={120} />
-              </div>
-              <div className="relative z-10">
-                <div className="bg-orange-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform">
-                  <BookOpen size={28} />
+            {(!user.permissions || user.permissions.livros) && (
+              <button
+                onClick={() => {
+                  setCurrentSystem('livros');
+                  setActiveTab('livros-catalogo');
+                  setShowModuleSelector(false);
+                }}
+                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-orange-600 transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute right-0 top-0 p-6 text-orange-50 group-hover:text-orange-600/5 transition-colors">
+                  <BookOpen size={120} />
                 </div>
-                <h3 className="text-xl font-black text-gray-800 mb-2">Livros PNLD</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">Gerencie catálogo e empréstimos de livros.</p>
-                <div className="mt-6 flex items-center gap-2 text-orange-600 font-bold text-sm">
-                  Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                <div className="relative z-10">
+                  <div className="bg-orange-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform">
+                    <BookOpen size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-800 mb-2">Livros PNLD</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">Gerencie catálogo e empréstimos de livros.</p>
+                  <div className="mt-6 flex items-center gap-2 text-orange-600 font-bold text-sm">
+                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            )}
 
             {/* Nada Consta */}
-            <button
-              onClick={() => {
-                setCurrentSystem('nadaconsta');
-                setActiveTab('nadaconsta');
-                setShowModuleSelector(false);
-              }}
-              className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-blue-600 transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute right-0 top-0 p-6 text-blue-50 group-hover:text-blue-600/5 transition-colors">
-                <FileCheck size={120} />
-              </div>
-              <div className="relative z-10">
-                <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
-                  <FileCheck size={28} />
+            {(!user.permissions || user.permissions.nadaconsta) && (
+              <button
+                onClick={() => {
+                  setCurrentSystem('nadaconsta');
+                  setActiveTab('nadaconsta');
+                  setShowModuleSelector(false);
+                }}
+                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-blue-600 transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute right-0 top-0 p-6 text-blue-50 group-hover:text-blue-600/5 transition-colors">
+                  <FileCheck size={120} />
                 </div>
-                <h3 className="text-xl font-black text-gray-800 mb-2">Nada Consta</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">Verificação de pendências de armários e livros.</p>
-                <div className="mt-6 flex items-center gap-2 text-blue-600 font-bold text-sm">
-                  Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                <div className="relative z-10">
+                  <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
+                    <FileCheck size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-800 mb-2">Nada Consta</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">Verificação de pendências de armários e livros.</p>
+                  <div className="mt-6 flex items-center gap-2 text-blue-600 font-bold text-sm">
+                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            )}
 
             {/* Cadastro de Pessoas */}
             <button
@@ -610,14 +605,12 @@ const App: React.FC = () => {
                 </div>
               </div>
               <button onClick={() => { setShowPasswordModal(true); setMobileMenuOpen(false); }} className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-medium text-gray-600 bg-white border border-gray-200 py-1.5 rounded-lg hover:bg-gray-50"><KeyRound size={14} /> Alterar Senha</button>
-              {user.level !== UserLevel.STANDARD && (
-                <button
-                  onClick={() => { setShowModuleSelector(true); setMobileMenuOpen(false); }}
-                  className="mt-2 w-full flex items-center justify-center gap-2 text-xs font-bold text-ifrn-green bg-green-50 border border-green-100 py-1.5 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  <LayoutGrid size={14} /> Tela Inicial
-                </button>
-              )}
+              <button
+                onClick={() => { setShowModuleSelector(true); setMobileMenuOpen(false); }}
+                className="mt-2 w-full flex items-center justify-center gap-2 text-xs font-bold text-ifrn-green bg-green-50 border border-green-100 py-1.5 rounded-lg hover:bg-green-100 transition-colors"
+              >
+                <LayoutGrid size={14} /> Tela Inicial
+              </button>
             </div>
             <nav className="flex-1 p-4 space-y-2">
               {currentSystem === 'achados' && (
@@ -690,15 +683,13 @@ const App: React.FC = () => {
               <div className="text-xs text-gray-500">{user.level} • {user.matricula}</div>
             </div>
 
-            {user.level !== UserLevel.STANDARD && (
-              <button
-                onClick={() => setShowModuleSelector(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 hover:text-ifrn-green hover:bg-green-50 rounded-lg transition-all text-xs font-bold border border-gray-100"
-                title="Tela Inicial"
-              >
-                <LayoutGrid size={16} /> <span className="hidden lg:inline">Ir para Início</span>
-              </button>
-            )}
+            <button
+              onClick={() => setShowModuleSelector(true)}
+              className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 hover:text-ifrn-green hover:bg-green-50 rounded-lg transition-all text-xs font-bold border border-gray-100"
+              title="Tela Inicial"
+            >
+              <LayoutGrid size={16} /> <span className="hidden lg:inline">Ir para Início</span>
+            </button>
             {canConfigure && (
               <button onClick={openConfigModal} className="hidden md:block p-2 text-gray-500 hover:text-ifrn-green transition-colors" title="Configurações Administrativas"><Settings size={20} /></button>
             )}

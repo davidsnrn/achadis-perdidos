@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, UserLevel, Person } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Shield, Plus, Pencil, Trash2, UserCog, Lock, FileText, Loader2, Search, User as UserIcon } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, UserCog, Lock, FileText, Loader2, Search, User as UserIcon, CheckCircle, Package, Key, BookOpen, FileCheck } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -26,6 +26,14 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
   const [personSearch, setPersonSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+
+  // Permission States
+  const [permissions, setPermissions] = useState({
+    achados: true,
+    armarios: true,
+    livros: true,
+    nadaconsta: true,
+  });
 
   const userString = `${currentUser.name} (${currentUser.matricula})`;
 
@@ -94,6 +102,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
       name: formName,
       password: password,
       level: formData.get('level') as UserLevel,
+      permissions: permissions,
       logs: selectedUser ? selectedUser.logs : [],
     };
 
@@ -161,11 +170,23 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
     if (user) {
       setFormName(user.name);
       setFormMatricula(user.matricula);
-      setSelectedPerson(null); // Reset person link on edit to avoid confusion unless we match perfectly
+      setSelectedPerson(null);
+      setPermissions({
+        achados: user.permissions?.achados ?? (user.level !== UserLevel.STANDARD),
+        armarios: user.permissions?.armarios ?? (user.level !== UserLevel.STANDARD),
+        livros: user.permissions?.livros ?? (user.level !== UserLevel.STANDARD),
+        nadaconsta: user.permissions?.nadaconsta ?? true,
+      });
     } else {
       setFormName('');
       setFormMatricula('');
       setSelectedPerson(null);
+      setPermissions({
+        achados: false,
+        armarios: false,
+        livros: false,
+        nadaconsta: true,
+      });
     }
     setPersonSearch('');
     setShowEditModal(true);
@@ -366,7 +387,53 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nível de Acesso</label>
-              <select name="level" defaultValue={selectedUser?.level || UserLevel.STANDARD} disabled={selectedUser?.id === currentUser.id && currentUser.level !== UserLevel.ADMIN} className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-ifrn-green outline-none disabled:bg-gray-100 disabled:text-gray-500"><option value={UserLevel.STANDARD}>Padrão (Apenas consulta e registro básico)</option><option value={UserLevel.ADVANCED}>Avançado (Gestão de Itens e Usuários Padrão)</option>{currentUser.level === UserLevel.ADMIN && (<option value={UserLevel.ADMIN}>Administrador (Acesso Total)</option>)}</select>
+              <select
+                name="level"
+                defaultValue={selectedUser?.level || UserLevel.STANDARD}
+                disabled={selectedUser?.id === currentUser.id && currentUser.level !== UserLevel.ADMIN}
+                className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-ifrn-green outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                onChange={(e) => {
+                  const val = e.target.value as UserLevel;
+                  if (val !== UserLevel.STANDARD) {
+                    setPermissions({ achados: true, armarios: true, livros: true, nadaconsta: true });
+                  }
+                }}
+              >
+                <option value={UserLevel.STANDARD}>Padrão (Personalizável)</option>
+                <option value={UserLevel.ADVANCED}>Avançado (Acesso Total + Gestão)</option>
+                {currentUser.level === UserLevel.ADMIN && (<option value={UserLevel.ADMIN}>Administrador (Acesso Total)</option>)}
+              </select>
+            </div>
+
+            <div className="pt-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-3">Módulos Liberados</label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: 'achados', label: 'Achados', icon: <Package size={14} /> },
+                  { id: 'armarios', label: 'Armários', icon: <Key size={14} /> },
+                  { id: 'livros', label: 'Livros', icon: <BookOpen size={14} /> },
+                  { id: 'nadaconsta', label: 'Nada Consta', icon: <FileCheck size={14} /> }
+                ].map(module => (
+                  <button
+                    key={module.id}
+                    type="button"
+                    onClick={() => setPermissions(prev => ({ ...prev, [module.id]: !prev[module.id as keyof typeof prev] }))}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${permissions[module.id as keyof typeof permissions]
+                      ? 'bg-green-50 border-green-200 text-green-700 shadow-sm'
+                      : 'bg-gray-50 border-gray-100 text-gray-400 opacity-60'
+                      }`}
+                  >
+                    <div className={permissions[module.id as keyof typeof permissions] ? 'text-green-600' : 'text-gray-400'}>
+                      {module.id === 'achados' ? <Package size={14} /> :
+                        module.id === 'armarios' ? <Key size={14} /> :
+                          module.id === 'livros' ? <BookOpen size={14} /> :
+                            <FileCheck size={14} />}
+                    </div>
+                    {module.label}
+                    {permissions[module.id as keyof typeof permissions] && <CheckCircle size={12} className="ml-auto" />}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {selectedUser && canManageUser(selectedUser) && (
