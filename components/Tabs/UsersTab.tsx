@@ -33,6 +33,8 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
     armarios: true,
     livros: true,
     nadaconsta: true,
+    pessoas: true,
+    usuarios: true,
   });
 
   const userString = `${currentUser.name} (${currentUser.matricula})`;
@@ -57,7 +59,9 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
 
   const canManageUser = (targetUser: User) => {
     if (currentUser.id === targetUser.id) return true;
-    if (currentUser.level === UserLevel.ADMIN) return true;
+    if (currentUser.level === UserLevel.ADMIN) {
+      return targetUser.level !== UserLevel.ADMIN;
+    }
     if (currentUser.level === UserLevel.ADVANCED) {
       return targetUser.level === UserLevel.STANDARD;
     }
@@ -176,6 +180,8 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
         armarios: user.permissions?.armarios ?? (user.level !== UserLevel.STANDARD),
         livros: user.permissions?.livros ?? (user.level !== UserLevel.STANDARD),
         nadaconsta: user.permissions?.nadaconsta ?? true,
+        pessoas: user.permissions?.pessoas ?? (user.level !== UserLevel.STANDARD),
+        usuarios: user.permissions?.usuarios ?? (user.level !== UserLevel.STANDARD),
       });
     } else {
       setFormName('');
@@ -186,6 +192,8 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
         armarios: false,
         livros: false,
         nadaconsta: true,
+        pessoas: false,
+        usuarios: false,
       });
     }
     setPersonSearch('');
@@ -203,6 +211,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
     setSelectedPerson(null);
     setFormName('');
     setFormMatricula('');
+    setPersonSearch('');
   };
 
   return (
@@ -283,9 +292,13 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                         { id: 'achados', icon: <Package size={14} />, label: 'Achados' },
                         { id: 'armarios', icon: <Key size={14} />, label: 'Armários' },
                         { id: 'livros', icon: <BookOpen size={14} />, label: 'Livros' },
-                        { id: 'nadaconsta', icon: <FileCheck size={14} />, label: 'Nada Consta' }
+                        { id: 'nadaconsta', icon: <FileCheck size={14} />, label: 'Nada Consta' },
+                        { id: 'pessoas', icon: <UserIcon size={14} />, label: 'Pessoas' },
+                        { id: 'usuarios', icon: <UserCog size={14} />, label: 'Usuários' }
                       ].map(mod => {
-                        const hasAccess = u.level !== UserLevel.STANDARD || (u.permissions && u.permissions[mod.id as keyof typeof u.permissions]);
+                        const hasAccess = u.permissions && u.permissions[mod.id as keyof typeof u.permissions] !== undefined
+                          ? u.permissions[mod.id as keyof typeof u.permissions]
+                          : (mod.id === 'nadaconsta' || u.level !== UserLevel.STANDARD);
                         return (
                           <div
                             key={mod.id}
@@ -412,12 +425,12 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
               <select
                 name="level"
                 defaultValue={selectedUser?.level || UserLevel.STANDARD}
-                disabled={selectedUser?.id === currentUser.id && currentUser.level !== UserLevel.ADMIN}
-                className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-ifrn-green outline-none disabled:bg-gray-100 disabled:text-gray-500"
+                disabled={(selectedUser?.id === currentUser.id && currentUser.level !== UserLevel.ADMIN) || selectedUser?.id === currentUser.id}
+                className="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-ifrn-green outline-none disabled:bg-gray-100 disabled:text-gray-500 cursor-not-allowed"
                 onChange={(e) => {
                   const val = e.target.value as UserLevel;
                   if (val !== UserLevel.STANDARD) {
-                    setPermissions({ achados: true, armarios: true, livros: true, nadaconsta: true });
+                    setPermissions({ achados: true, armarios: true, livros: true, nadaconsta: true, pessoas: true, usuarios: true });
                   }
                 }}
               >
@@ -431,25 +444,30 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
               <label className="block text-xs font-semibold text-gray-500 uppercase mb-3">Módulos Liberados</label>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { id: 'achados', label: 'Achados', icon: <Package size={14} /> },
-                  { id: 'armarios', label: 'Armários', icon: <Key size={14} /> },
-                  { id: 'livros', label: 'Livros', icon: <BookOpen size={14} /> },
-                  { id: 'nadaconsta', label: 'Nada Consta', icon: <FileCheck size={14} /> }
+                  { id: 'achados', label: 'Achados' },
+                  { id: 'armarios', label: 'Armários' },
+                  { id: 'livros', label: 'Livros' },
+                  { id: 'nadaconsta', label: 'Nada Consta' },
+                  { id: 'pessoas', label: 'Pessoas' },
+                  { id: 'usuarios', label: 'Usuários' }
                 ].map(module => (
                   <button
                     key={module.id}
                     type="button"
+                    disabled={selectedUser?.id === currentUser.id}
                     onClick={() => setPermissions(prev => ({ ...prev, [module.id]: !prev[module.id as keyof typeof prev] }))}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${permissions[module.id as keyof typeof permissions]
                       ? 'bg-green-50 border-green-200 text-green-700 shadow-sm'
                       : 'bg-gray-50 border-gray-100 text-gray-400 opacity-60'
-                      }`}
+                      } ${selectedUser?.id === currentUser.id ? 'cursor-not-allowed' : ''}`}
                   >
                     <div className={permissions[module.id as keyof typeof permissions] ? 'text-green-600' : 'text-gray-400'}>
                       {module.id === 'achados' ? <Package size={14} /> :
                         module.id === 'armarios' ? <Key size={14} /> :
                           module.id === 'livros' ? <BookOpen size={14} /> :
-                            <FileCheck size={14} />}
+                            module.id === 'nadaconsta' ? <FileCheck size={14} /> :
+                              module.id === 'pessoas' ? <UserIcon size={14} /> :
+                                <UserCog size={14} />}
                     </div>
                     {module.label}
                     {permissions[module.id as keyof typeof permissions] && <CheckCircle size={12} className="ml-auto" />}

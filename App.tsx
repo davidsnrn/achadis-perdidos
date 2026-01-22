@@ -79,6 +79,15 @@ const App: React.FC = () => {
     }
   }, [activeTab, user]);
 
+  const hasAccess = (mod: keyof NonNullable<User['permissions']>) => {
+    if (!user) return false;
+    if (user.permissions && user.permissions[mod] !== undefined) {
+      return user.permissions[mod];
+    }
+    if (mod === 'nadaconsta') return true;
+    return user.level !== UserLevel.STANDARD;
+  };
+
   // Refresh Data Helper (Async) with Timeout
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -422,7 +431,7 @@ const App: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Achados e Perdidos */}
-            {(!user.permissions || user.permissions.achados) && (
+            {hasAccess('achados') && (
               <button
                 onClick={() => {
                   setCurrentSystem('achados');
@@ -448,7 +457,7 @@ const App: React.FC = () => {
             )}
 
             {/* Gestão de Armários */}
-            {(!user.permissions || user.permissions.armarios) && (
+            {hasAccess('armarios') && (
               <button
                 onClick={() => {
                   setCurrentSystem('armarios');
@@ -474,7 +483,7 @@ const App: React.FC = () => {
             )}
 
             {/* Livros PNLD */}
-            {(!user.permissions || user.permissions.livros) && (
+            {hasAccess('livros') && (
               <button
                 onClick={() => {
                   setCurrentSystem('livros');
@@ -500,7 +509,7 @@ const App: React.FC = () => {
             )}
 
             {/* Nada Consta */}
-            {(!user.permissions || user.permissions.nadaconsta) && (
+            {hasAccess('nadaconsta') && (
               <button
                 onClick={() => {
                   setCurrentSystem('nadaconsta');
@@ -526,30 +535,33 @@ const App: React.FC = () => {
             )}
 
             {/* Cadastro de Pessoas */}
-            <button
-              onClick={() => {
-                setCurrentSystem(null);
-                setActiveTab('pessoas');
-                setShowModuleSelector(false);
-              }}
-              className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-blue-600 transition-all group text-left relative overflow-hidden"
-            >
-              <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-blue-600/5 transition-colors">
-                <Users size={120} />
-              </div>
-              <div className="relative z-10">
-                <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
-                  <Users size={28} />
+            {hasAccess('pessoas') && (
+              <button
+                onClick={() => {
+                  setCurrentSystem(null);
+                  setActiveTab('pessoas');
+                  setShowModuleSelector(false);
+                }}
+                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-blue-600 transition-all group text-left relative overflow-hidden"
+              >
+                <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-blue-600/5 transition-colors">
+                  <Users size={120} />
                 </div>
-                <h3 className="text-xl font-black text-gray-800 mb-2">Pessoas</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">Gerencie cadastros de alunos e servidores.</p>
-                <div className="mt-6 flex items-center gap-2 text-blue-600 font-bold text-sm">
-                  Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                <div className="relative z-10">
+                  <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
+                    <Users size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-800 mb-2">Pessoas</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">Gerencie cadastros de alunos e servidores.</p>
+                  <div className="mt-6 flex items-center gap-2 text-blue-600 font-bold text-sm">
+                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
+            )}
 
-            {(user.level === UserLevel.ADMIN || user.level === UserLevel.ADVANCED) && (
+            {/* Cadastro de Usuários */}
+            {hasAccess('usuarios') && (
               <button
                 onClick={() => {
                   setCurrentSystem(null);

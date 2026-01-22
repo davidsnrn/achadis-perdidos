@@ -33,6 +33,8 @@ export interface User {
     armarios?: boolean;
     livros?: boolean;
     nadaconsta?: boolean;
+    pessoas?: boolean;
+    usuarios?: boolean;
   };
   logs?: string[];
 }
