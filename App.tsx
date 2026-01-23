@@ -587,12 +587,153 @@ const App: React.FC = () => {
             )}
           </div>
 
-          <div className="mt-12 text-center">
-            <button onClick={handleLogout} className="px-6 py-2 text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center gap-2 mx-auto">
+          <div className="mt-12 flex flex-col items-center gap-4">
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="px-6 py-2 text-gray-600 hover:text-ifrn-green font-medium transition-colors flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md"
+              >
+                <KeyRound size={18} /> Alterar Minha Senha
+              </button>
+
+              {canConfigure && (
+                <button
+                  onClick={openConfigModal}
+                  className="px-6 py-2 text-gray-600 hover:text-ifrn-green font-medium transition-colors flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md"
+                >
+                  <Settings size={18} /> Configurações
+                </button>
+              )}
+            </div>
+
+            <button onClick={handleLogout} className="px-6 py-2 text-red-400 hover:text-red-500 font-medium transition-colors flex items-center gap-2">
               <LogOut size={18} /> Sair da conta
             </button>
           </div>
         </div>
+
+        {/* MODALS IN MODULE SELECTOR */}
+        <Modal isOpen={showPasswordModal} onClose={() => { setShowPasswordModal(false); setShowCurrentPass(false); setShowNewPass(false); setShowConfirmPass(false); }} title="Alterar Minha Senha">
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Senha Atual</label>
+              <div className="relative group">
+                <input
+                  type={showCurrentPass ? "text" : "password"}
+                  required
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  className="w-full border rounded-lg p-2.5 pr-10 text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPass(!showCurrentPass)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-ifrn-green opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200"
+                  tabIndex={-1}
+                >
+                  {showCurrentPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+              <div className="relative group">
+                <input
+                  type={showNewPass ? "text" : "password"}
+                  required
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="w-full border rounded-lg p-2.5 pr-10 text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPass(!showNewPass)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-ifrn-green opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200"
+                  tabIndex={-1}
+                >
+                  {showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Nova Senha</label>
+              <div className="relative group">
+                <input
+                  type={showConfirmPass ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full border rounded-lg p-2.5 pr-10 text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPass(!showConfirmPass)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-ifrn-green opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200"
+                  tabIndex={-1}
+                >
+                  {showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+            <div className="pt-4 flex justify-end gap-3 border-t">
+              <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button>
+              <button type="submit" className="px-6 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen font-medium flex items-center gap-2"><KeyRound size={18} /> Salvar Nova Senha</button>
+            </div>
+          </form>
+        </Modal>
+
+        <Modal isOpen={showConfigModal} onClose={() => setShowConfigModal(false)} title="Configurações do Sistema">
+          <div className="space-y-6 max-h-[70vh] overflow-y-auto p-1">
+            <form onSubmit={handleSaveSystemConfig} className="space-y-4 bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+              <h4 className="font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-blue-100"><Building2 size={18} className="text-blue-600" /> Personalizar Campus</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome do Setor</label><input type="text" value={configSector} onChange={e => setConfigSector(e.target.value.toUpperCase())} className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none uppercase" placeholder="Ex: COADES" /></div>
+                <div><label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome do Campus</label><input type="text" value={configCampus} onChange={e => setConfigCampus(e.target.value.toUpperCase())} className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus://ifrn-green outline-none uppercase" placeholder="Ex: NOVA CRUZ" /></div>
+              </div>
+              <div className="flex justify-end pt-2"><button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2"><Save size={16} /> Salvar Alterações</button></div>
+            </form>
+
+            <div className="bg-green-50/50 p-4 rounded-lg border border-green-100">
+              <h4 className="font-bold text-gray-800 flex items-center gap-2 pb-2 border-b border-green-100"><Download size={18} className="text-green-600" /> Cópia de Segurança</h4>
+              <div className="py-4">
+                <p className="text-sm text-gray-600 mb-4">Exporte todos os dados salvos no Supabase (configurações, itens, relatos, pessoas e usuários) para um arquivo JSON seguro.</p>
+                <button
+                  onClick={handleDownloadBackup}
+                  disabled={loading}
+                  className="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-bold flex items-center justify-center gap-2 transition-all transform active:scale-95"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                  Baixar Backup Completo (.JSON)
+                </button>
+              </div>
+            </div>
+            {user.level === UserLevel.ADMIN && (
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <button type="button" onClick={() => setDesktopDeleteOpen(!desktopDeleteOpen)} className="w-full flex items-center justify-between p-3 bg-red-50 text-red-800 rounded-lg hover:bg-red-100 transition-colors">
+                  <div className="flex items-center gap-2 font-bold"><Trash size={18} /> Apagar Dados Administrativos</div>
+                  {desktopDeleteOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </button>
+                {desktopDeleteOpen && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 animate-fadeIn">
+                    <button onClick={() => initiateConfigAction('DELETE_ITEMS')} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors group gap-3"><div className="p-2 bg-gray-100 rounded-lg group-hover:bg-white text-gray-600 group-hover:text-red-500"><Trash size={20} /></div><div className="text-left"><p className="font-bold text-gray-800 text-sm group-hover:text-red-700">Apagar Itens</p><p className="text-[10px] text-gray-500">Todos os achados.</p></div></button>
+                    <button onClick={() => initiateConfigAction('DELETE_REPORTS')} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors group gap-3"><div className="p-2 bg-gray-100 rounded-lg group-hover:bg-white text-gray-600 group-hover:text-red-500"><FileX size={20} /></div><div className="text-left"><p className="font-bold text-gray-800 text-sm group-hover:text-red-700">Apagar Relatos</p><p className="text-[10px] text-gray-500">Todos os perdidos.</p></div></button>
+                    <button onClick={() => initiateConfigAction('DELETE_PEOPLE')} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors group gap-3"><div className="p-2 bg-gray-100 rounded-lg group-hover:bg-white text-gray-600 group-hover:text-red-500"><UserX size={20} /></div><div className="text-left"><p className="font-bold text-gray-800 text-sm group-hover:text-red-700">Apagar Pessoas</p><p className="text-[10px] text-gray-500">Todos os cadastros.</p></div></button>
+                    <button onClick={() => initiateConfigAction('DELETE_USERS')} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors group gap-3"><div className="p-2 bg-gray-100 rounded-lg group-hover:bg-white text-gray-600 group-hover:text-red-500"><ShieldCheck size={20} /></div><div className="text-left"><p className="font-bold text-gray-800 text-sm group-hover:text-red-700">Apagar Usuários</p><p className="text-[10px] text-gray-500">Exceto você.</p></div></button>
+                    <button onClick={() => initiateConfigAction('FACTORY_RESET')} className="col-span-1 md:col-span-2 w-full flex items-center justify-between p-4 border border-red-200 bg-red-50 rounded-lg hover:bg-red-100 transition-colors group"><div className="flex items-center gap-3"><div className="p-2 bg-white rounded-lg text-red-600"><AlertTriangle size={20} /></div><div className="text-left"><p className="font-bold text-red-800">Configuração de Fábrica</p><p className="text-xs text-red-600">Apaga TUDO e restaura o estado inicial.</p></div></div></button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </Modal>
+
+        <Modal isOpen={!!confirmAction} onClose={() => { setConfirmAction(null); setConfirmationPassword(''); }} title="Confirmação de Segurança">
+          <form onSubmit={executeConfigAction} className="space-y-4">
+            <div className="bg-red-50 text-red-800 p-4 rounded-lg text-sm mb-4 border border-red-200"><p className="font-bold">Esta ação é irreversível.</p><p>Por favor, confirme sua senha de administrador para continuar.</p><p className="mt-2 text-xs font-mono bg-white/50 p-1 rounded inline-block">Ação: {getActionName()}</p></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Sua Senha</label><input type="password" required value={confirmationPassword} onChange={e => setConfirmationPassword(e.target.value)} className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-red-500 outline-none" placeholder="Confirme sua senha..." autoFocus /></div>
+            <div className="pt-4 flex justify-end gap-3 border-t"><button type="button" onClick={() => { setConfirmAction(null); setConfirmationPassword(''); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancelar</button><button type="submit" disabled={loading} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold flex items-center gap-2">{loading ? '...' : <><AlertTriangle size={18} /> Confirmar Exclusão</>}</button></div>
+          </form>
+        </Modal>
       </div>
     );
   }

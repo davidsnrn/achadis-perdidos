@@ -90,7 +90,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
       if (b.id === currentUser.id) return 1;
       return a.name.localeCompare(b.name);
     });
-  }, [users, currentUser]);
+  }, [users, currentUser, userSearch]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
