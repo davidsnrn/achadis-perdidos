@@ -474,10 +474,27 @@ export const StorageService = {
     const hashedFn = await StorageService.hashPassword(pass);
 
     if (user.password === hashedFn) {
+      // Registrar acesso
+      const dateStr = new Date().toLocaleString('pt-BR');
+      const accessLog = `Acesso em ${dateStr}.`;
+      const updatedLogs = [...(user.logs || []), accessLog];
+
+      await supabase.from('users').update({ logs: updatedLogs }).eq('id', user.id);
+      user.logs = updatedLogs;
+
       return user as User;
     } else if (user.password === pass) {
       await supabase.from('users').update({ password: hashedFn }).eq('id', user.id);
       user.password = hashedFn;
+
+      // Registrar acesso (também no caso de migração de senha)
+      const dateStr = new Date().toLocaleString('pt-BR');
+      const accessLog = `Acesso em ${dateStr}.`;
+      const updatedLogs = [...(user.logs || []), accessLog];
+
+      await supabase.from('users').update({ logs: updatedLogs }).eq('id', user.id);
+      user.logs = updatedLogs;
+
       return user as User;
     }
 

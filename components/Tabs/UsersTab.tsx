@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, UserLevel, Person } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Shield, Plus, Pencil, Trash2, UserCog, Lock, FileText, Loader2, Search, User as UserIcon, CheckCircle, Package, Key, BookOpen, FileCheck } from 'lucide-react';
+import { Shield, Plus, Pencil, Trash2, UserCog, Lock, FileText, Loader2, Search, User as UserIcon, CheckCircle, Package, Key, BookOpen, FileCheck, History } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -501,8 +501,46 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
             </div>
             <div>
               <h4 className="flex items-center gap-2 font-bold text-gray-700 mb-3 border-b pb-2"><FileText size={18} /> Log de Auditoria</h4>
-              <div className="space-y-2 max-h-48 overflow-y-auto bg-white border rounded-lg p-3">{selectedUser.logs && selectedUser.logs.length > 0 ? (selectedUser.logs.slice().reverse().map((log, index) => (<div key={index} className="text-xs text-gray-600 border-b border-gray-100 pb-1 mb-1 last:border-0">• {log}</div>))) : (<p className="text-xs text-gray-400 italic">Nenhum registro de alteração.</p>)}</div>
+              <div className="space-y-2 max-h-48 overflow-y-auto bg-white border rounded-lg p-3">
+                {selectedUser.logs && selectedUser.logs.filter(l => !l.startsWith('Acesso em')).length > 0 ? (
+                  selectedUser.logs
+                    .filter(l => !l.startsWith('Acesso em'))
+                    .slice()
+                    .reverse()
+                    .map((log, index) => (
+                      <div key={index} className="text-xs text-gray-600 border-b border-gray-100 pb-1 mb-1 last:border-0">
+                        • {log}
+                      </div>
+                    ))
+                ) : (
+                  <p className="text-xs text-gray-400 italic">Nenhum registro de alteração.</p>
+                )}
+              </div>
             </div>
+
+            {currentUser.level === UserLevel.ADMIN && (
+              <div className="mt-4">
+                <h4 className="flex items-center gap-2 font-bold text-gray-700 mb-3 border-b pb-2">
+                  <History size={18} /> Últimos 10 Acessos
+                </h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto bg-white border rounded-lg p-3">
+                  {selectedUser.logs && selectedUser.logs.filter(l => l.startsWith('Acesso em')).length > 0 ? (
+                    selectedUser.logs
+                      .filter(l => l.startsWith('Acesso em'))
+                      .slice() // Copy array
+                      .reverse() // Newest first
+                      .slice(0, 10) // Take last 10
+                      .map((log, index) => (
+                        <div key={index} className="text-xs text-gray-600 border-b border-gray-100 pb-1 mb-1 last:border-0">
+                          • {log.replace('Acesso em ', '')}
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">Nenhum registro de acesso recente.</p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end pt-2"><button onClick={() => { setShowDetailModal(false); setSelectedUser(null); }} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">Fechar</button></div>
           </div>
         )}
