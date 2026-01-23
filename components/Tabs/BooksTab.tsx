@@ -276,7 +276,7 @@ export const BooksTab: React.FC<Props> = ({ books, bookLoans, onUpdate, user }) 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Qtd Atual (Estoque Total)</label>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Quantidade Atual</label>
                             <input
                                 required
                                 value={quantity}
@@ -286,7 +286,7 @@ export const BooksTab: React.FC<Props> = ({ books, bookLoans, onUpdate, user }) 
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Qtd Emprestada (Auto)</label>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Quantidade Emprestada</label>
                             <div className="w-full border bg-gray-50 rounded-lg p-2.5 text-sm text-gray-500 font-bold flex items-center justify-between">
                                 {editingBook ? getBorrowedCount(editingBook.id) : 0}
                                 <FileText size={16} className="text-gray-400" />
