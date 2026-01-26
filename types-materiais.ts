@@ -1,0 +1,21 @@
+export interface Material {
+    id: string;
+    code: string; // Unique tracking code (e.g., "MAT-001")
+    name: string;
+    createdAt: string;
+}
+
+export interface MaterialLoan {
+    id: string;
+    materialId: string;
+    materialName: string;
+    materialCode: string; // Track by code
+    personId: string;
+    personName: string;
+    personMatricula: string;
+    loanDate: string;
+    returnDate?: string;
+    observation?: string;
+    status: 'ACTIVE' | 'RETURNED';
+    loanedBy: string; // User who registered the loan
+}

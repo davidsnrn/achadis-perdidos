@@ -35,6 +35,7 @@ export interface User {
     nadaconsta?: boolean;
     pessoas?: boolean;
     usuarios?: boolean;
+    materiais?: boolean;
   };
   logs?: string[];
 }

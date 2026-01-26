@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Book, BookLoan, BookLoanStatus, FoundItem, ItemStatus, LostReport, Person, PersonType, ReportStatus, User, UserLevel } from "../types";
 import { Locker, LockerStatus } from "../types-armarios";
+import { Material, MaterialLoan } from "../types-materiais";
 
 // Configuração do Supabase
 // NOTA DE SEGURANÇA: Utilize apenas a chave pública (anon key) aqui. Nunca a service_role.
@@ -630,6 +631,108 @@ export const StorageService = {
       history: loan.history || []
     };
     const { error } = await supabase.from('book_loans').upsert(payload);
+    if (error) throw error;
+  },
+
+  // Materials
+  getMaterials: async (): Promise<Material[]> => {
+    let allData: Material[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .order('name', { ascending: true })
+        .range(from, from + limit - 1);
+
+      if (error) break;
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
+    }
+    return allData;
+  },
+
+  saveMaterial: async (material: Material) => {
+    const { error } = await supabase.from('materials').upsert({
+      id: material.id,
+      code: material.code,
+      name: material.name,
+      createdAt: material.createdAt
+    });
+
+    if (error) throw error;
+  },
+
+  deleteMaterial: async (id: string) => {
+    await supabase.from('materials').delete().eq('id', id);
+  },
+
+  // Material Loans
+  getMaterialLoans: async (): Promise<MaterialLoan[]> => {
+    let allData: any[] = [];
+    let from = 0;
+    const limit = 1000;
+
+    while (true) {
+      const { data, error } = await supabase
+        .from('material_loans')
+        .select('*')
+        .order('loanDate', { ascending: false })
+        .range(from, from + limit - 1);
+
+      if (error) break;
+      if (!data || data.length === 0) break;
+      allData = [...allData, ...data];
+      if (data.length < limit) break;
+      from += limit;
+    }
+
+    return allData.map((d: any) => ({
+      id: d.id,
+      materialId: d.materialId,
+      materialName: d.materialName,
+      materialCode: d.materialCode,
+      personId: d.personId,
+      personName: d.personName,
+      personMatricula: d.personMatricula,
+      loanDate: d.loanDate,
+      returnDate: d.returnDate,
+      observation: d.observation,
+      status: d.status,
+      loanedBy: d.loanedBy
+    }));
+  },
+
+  saveMaterialLoan: async (loan: MaterialLoan) => {
+    const payload = {
+      id: loan.id,
+      materialId: loan.materialId,
+      materialName: loan.materialName,
+      materialCode: loan.materialCode,
+      personId: loan.personId,
+      personName: loan.personName,
+      personMatricula: loan.personMatricula,
+      loanDate: loan.loanDate,
+      returnDate: loan.returnDate,
+      observation: loan.observation,
+      status: loan.status,
+      loanedBy: loan.loanedBy
+    };
+    const { error } = await supabase.from('material_loans').upsert(payload);
+    if (error) throw error;
+  },
+
+  returnMaterialLoan: async (loanId: string) => {
+    // Update loan status only (no quantity tracking)
+    const { error } = await supabase
+      .from('material_loans')
+      .update({ status: 'RETURNED', returnDate: new Date().toISOString() })
+      .eq('id', loanId);
+
     if (error) throw error;
   },
 

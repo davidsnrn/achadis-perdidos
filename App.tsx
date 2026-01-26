@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StorageService } from './services/storage';
 import { User, UserLevel, FoundItem, LostReport, Person, Book, BookLoan } from './types';
 import { Locker } from './types-armarios';
+import { Material, MaterialLoan } from './types-materiais';
 import { IfrnLogo } from './components/Logo';
 import { FoundItemsTab } from './components/Tabs/FoundItemsTab';
 import { LostReportsTab } from './components/Tabs/LostReportsTab';
@@ -11,6 +12,7 @@ import { ArmariosTab } from './components/Tabs/ArmariosTab';
 import { BooksTab } from './components/Tabs/BooksTab';
 import { BookLoansTab } from './components/Tabs/BookLoansTab';
 import { NadaConstaTab } from './components/Tabs/NadaConstaTab';
+import { MaterialManagementTab } from './components/Tabs/MaterialManagementTab';
 import { LogOut, Package, ClipboardList, Users, ShieldCheck, KeyRound, Menu, X, Settings, Trash, AlertTriangle, ChevronDown, ChevronUp, UserX, FileX, Save, Building2, Eye, EyeOff, Loader2, Key, Search, Trash2, ShieldAlert, AlertCircle, CheckCircle2, History, Send, ArrowRight, LayoutGrid, Download, BookOpen, FileCheck, Lock, User as UserIcon } from 'lucide-react';
 import { Modal } from './components/ui/Modal';
 
@@ -21,7 +23,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showModuleSelector, setShowModuleSelector] = useState(false);
-  const [currentSystem, setCurrentSystem] = useState<'achados' | 'armarios' | 'livros' | 'nadaconsta' | null>(null);
+  const [currentSystem, setCurrentSystem] = useState<'achados' | 'armarios' | 'livros' | 'nadaconsta' | 'materiais' | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Settings / Admin Config State
@@ -56,6 +58,8 @@ const App: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [bookLoans, setBookLoans] = useState<BookLoan[]>([]);
   const [lockers, setLockers] = useState<Locker[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [materialLoans, setMaterialLoans] = useState<MaterialLoan[]>([]);
 
   // Login State
   const [loginMat, setLoginMat] = useState('');
@@ -103,11 +107,13 @@ const App: React.FC = () => {
         StorageService.getUsers(),
         StorageService.getBooks(),
         StorageService.getBookLoans(),
-        StorageService.getLockers()
+        StorageService.getLockers(),
+        StorageService.getMaterials(),
+        StorageService.getMaterialLoans()
       ]);
 
       const result = await Promise.race([dataPromise, timeout]);
-      const [fetchedItems, fetchedReports, fetchedPeople, fetchedUsers, fetchedBooks, fetchedLoans, fetchedLockers] = result as [FoundItem[], LostReport[], Person[], User[], Book[], BookLoan[], Locker[]];
+      const [fetchedItems, fetchedReports, fetchedPeople, fetchedUsers, fetchedBooks, fetchedLoans, fetchedLockers, fetchedMaterials, fetchedMaterialLoans] = result as [FoundItem[], LostReport[], Person[], User[], Book[], BookLoan[], Locker[], Material[], MaterialLoan[]];
 
       setItems(fetchedItems);
       setReports(fetchedReports);
@@ -116,6 +122,8 @@ const App: React.FC = () => {
       setBooks(fetchedBooks);
       setBookLoans(fetchedLoans);
       setLockers(fetchedLockers);
+      setMaterials(fetchedMaterials);
+      setMaterialLoans(fetchedMaterialLoans);
     } catch (e) {
       console.error("Erro ao carregar dados:", e);
     } finally {
@@ -479,7 +487,7 @@ const App: React.FC = () => {
                 Olá, <span className="text-ifrn-green">{user.name.split(' ')[0]}</span>.
               </h2>
               <p className="text-lg text-gray-500 max-w-2xl mx-auto font-medium">
-                Selecione o sistema que deseja gerenciar hoje.
+                Selecione o sistema que deseja gerenciar.
               </p>
             </div>
           </div>
@@ -583,6 +591,32 @@ const App: React.FC = () => {
                   <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-blue-700 transition-colors">Nada Consta</h3>
                   <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Emissão rápida de declarações e verificação de pendências de alunos e servidores.</p>
                   <div className="mt-auto flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide bg-blue-50 w-fit px-4 py-2 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </button>
+            )}
+
+            {/* Empréstimo de Material */}
+            {hasAccess('materiais') && (
+              <button
+                onClick={() => {
+                  setCurrentSystem('materiais');
+                  setActiveTab('materiais');
+                  setShowModuleSelector(false);
+                }}
+                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-indigo-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
+              >
+                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-indigo-600/10 transition-colors duration-500">
+                  <LayoutGrid size={140} strokeWidth={1} />
+                </div>
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-indigo-600 to-purple-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-indigo-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <LayoutGrid size={32} />
+                  </div>
+                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-indigo-700 transition-colors">Empréstimo de Material</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Gerencie catálogo de materiais (HDMI, Grampeador) e registre empréstimos para alunos e servidores.</p>
+                  <div className="mt-auto flex items-center gap-2 text-indigo-700 font-bold text-sm tracking-wide bg-indigo-50 w-fit px-4 py-2 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-all">
                     ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
@@ -839,6 +873,9 @@ const App: React.FC = () => {
               {currentSystem === 'nadaconsta' && (
                 <button onClick={() => handleMobileNav('nadaconsta')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${activeTab === 'nadaconsta' ? 'bg-ifrn-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><FileCheck size={20} /> Nada Consta</button>
               )}
+              {currentSystem === 'materiais' && (
+                <button onClick={() => handleMobileNav('materiais')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-sm transition-colors ${activeTab === 'materiais' ? 'bg-ifrn-green text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}><LayoutGrid size={20} /> Empréstimos</button>
+              )}
 
               {canConfigure && (
                 <div className="pt-4 mt-2 border-t border-gray-100">
@@ -927,6 +964,9 @@ const App: React.FC = () => {
           {currentSystem === 'nadaconsta' && (
             <button onClick={() => setActiveTab('nadaconsta')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-medium text-sm transition-all ${activeTab === 'nadaconsta' ? 'bg-white border-x border-t border-gray-200 text-ifrn-darkGreen -mb-px' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}><FileCheck size={18} /> Sistema de Nada Consta</button>
           )}
+          {currentSystem === 'materiais' && (
+            <button onClick={() => setActiveTab('materiais')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg font-medium text-sm transition-all ${activeTab === 'materiais' ? 'bg-white border-x border-t border-gray-200 text-ifrn-darkGreen -mb-px' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}><LayoutGrid size={18} /> Empréstimos de Material</button>
+          )}
 
         </div>
         <div className="min-h-[400px]">
@@ -941,6 +981,7 @@ const App: React.FC = () => {
               {activeTab === 'livros-catalogo' && <BooksTab books={books} bookLoans={bookLoans} onUpdate={refreshData} user={user} />}
               {activeTab === 'livros-emprestimos' && <BookLoansTab loans={bookLoans} books={books} people={people} onUpdate={refreshData} user={user} />}
               {activeTab === 'nadaconsta' && <NadaConstaTab people={people} lockers={lockers} bookLoans={bookLoans} />}
+              {activeTab === 'materiais' && <MaterialManagementTab materials={materials} loans={materialLoans} people={people} user={user} onUpdate={refreshData} />}
               {activeTab === 'usuarios' && <UsersTab users={users} currentUser={user} onUpdate={refreshData} people={people} />}
             </>
           )}

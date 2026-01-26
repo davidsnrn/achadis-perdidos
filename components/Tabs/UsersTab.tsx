@@ -35,6 +35,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
     nadaconsta: true,
     pessoas: true,
     usuarios: true,
+    materiais: true,
   });
 
   const userString = `${currentUser.name} (${currentUser.matricula})`;
@@ -182,6 +183,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
         nadaconsta: user.permissions?.nadaconsta ?? true,
         pessoas: user.permissions?.pessoas ?? (user.level !== UserLevel.STANDARD),
         usuarios: user.permissions?.usuarios ?? (user.level !== UserLevel.STANDARD),
+        materiais: user.permissions?.materiais ?? (user.level !== UserLevel.STANDARD),
       });
     } else {
       setFormName('');
@@ -194,6 +196,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
         nadaconsta: true,
         pessoas: false,
         usuarios: false,
+        materiais: false,
       });
     }
     setPersonSearch('');
@@ -293,6 +296,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                         { id: 'armarios', icon: <Key size={14} />, label: 'Armários' },
                         { id: 'livros', icon: <BookOpen size={14} />, label: 'Livros' },
                         { id: 'nadaconsta', icon: <FileCheck size={14} />, label: 'Nada Consta' },
+                        { id: 'materiais', icon: <FileText size={14} />, label: 'Materiais' },
                         { id: 'pessoas', icon: <UserIcon size={14} />, label: 'Pessoas' },
                         { id: 'usuarios', icon: <UserCog size={14} />, label: 'Usuários' }
                       ].map(mod => {
@@ -430,7 +434,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                 onChange={(e) => {
                   const val = e.target.value as UserLevel;
                   if (val !== UserLevel.STANDARD) {
-                    setPermissions({ achados: true, armarios: true, livros: true, nadaconsta: true, pessoas: true, usuarios: true });
+                    setPermissions({ achados: true, armarios: true, livros: true, nadaconsta: true, pessoas: true, usuarios: true, materiais: true });
                   }
                 }}
               >
@@ -448,6 +452,7 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                   { id: 'armarios', label: 'Armários' },
                   { id: 'livros', label: 'Livros' },
                   { id: 'nadaconsta', label: 'Nada Consta' },
+                  { id: 'materiais', label: 'Materiais' },
                   { id: 'pessoas', label: 'Pessoas' },
                   { id: 'usuarios', label: 'Usuários' }
                 ].map(module => (
@@ -466,8 +471,9 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                         module.id === 'armarios' ? <Key size={14} /> :
                           module.id === 'livros' ? <BookOpen size={14} /> :
                             module.id === 'nadaconsta' ? <FileCheck size={14} /> :
-                              module.id === 'pessoas' ? <UserIcon size={14} /> :
-                                <UserCog size={14} />}
+                              module.id === 'materiais' ? <FileText size={14} /> :
+                                module.id === 'pessoas' ? <UserIcon size={14} /> :
+                                  <UserCog size={14} />}
                     </div>
                     {module.label}
                     {permissions[module.id as keyof typeof permissions] && <CheckCircle size={12} className="ml-auto" />}
