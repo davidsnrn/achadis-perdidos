@@ -299,7 +299,12 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                         { id: 'materiais', icon: <FileText size={14} />, label: 'Materiais' },
                         { id: 'pessoas', icon: <UserIcon size={14} />, label: 'Pessoas' },
                         { id: 'usuarios', icon: <UserCog size={14} />, label: 'Usuários' }
-                      ].map(mod => {
+                      ].filter(mod => {
+                        if (currentUser.level === UserLevel.ADMIN) return true;
+                        if (mod.id === 'nadaconsta') return true;
+                        const perm = currentUser.permissions?.[mod.id as keyof typeof currentUser.permissions];
+                        return perm !== undefined ? perm : (currentUser.level !== UserLevel.STANDARD);
+                      }).map(mod => {
                         const hasAccess = u.permissions && u.permissions[mod.id as keyof typeof u.permissions] !== undefined
                           ? u.permissions[mod.id as keyof typeof u.permissions]
                           : (mod.id === 'nadaconsta' || u.level !== UserLevel.STANDARD);
@@ -455,7 +460,12 @@ export const UsersTab: React.FC<Props> = ({ users, currentUser, onUpdate, people
                   { id: 'materiais', label: 'Materiais' },
                   { id: 'pessoas', label: 'Pessoas' },
                   { id: 'usuarios', label: 'Usuários' }
-                ].map(module => (
+                ].filter(mod => {
+                  if (currentUser.level === UserLevel.ADMIN) return true;
+                  if (mod.id === 'nadaconsta') return true;
+                  const perm = currentUser.permissions?.[mod.id as keyof typeof currentUser.permissions];
+                  return perm !== undefined ? perm : (currentUser.level !== UserLevel.STANDARD);
+                }).map(module => (
                   <button
                     key={module.id}
                     type="button"
