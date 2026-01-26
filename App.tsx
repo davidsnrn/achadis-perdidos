@@ -386,7 +386,7 @@ const App: React.FC = () => {
               <span className="text-green-300">INTEGRADO</span>
             </h1>
             <p className="text-xl text-green-100 font-medium leading-relaxed max-w-md border-l-4 border-green-400 pl-6">
-              Sistema de Administração Escolar para gestão unificada de recursos, pessoas e acessos do IFRN.
+              Sistema de Administração Escolar para gestão unificada do IFRN.
             </p>
           </div>
         </div>
@@ -413,7 +413,7 @@ const App: React.FC = () => {
                     value={loginMat}
                     onChange={e => setLoginMat(e.target.value)}
                     className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-ifrn-green/20 focus:border-ifrn-green block w-full pl-12 p-4 transition-all outline-none font-medium placeholder:text-gray-400"
-                    placeholder="Sua Matrícula/SIAPE"
+                    placeholder="Sua Matrícula"
                     required
                   />
                 </div>
