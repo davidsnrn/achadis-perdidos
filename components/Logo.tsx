@@ -1,13 +1,18 @@
 import React from 'react';
 
+// Logo.tsx
 interface LogoProps {
   className?: string;
   sector?: string;
   campus?: string;
   boldSubtext?: boolean;
+  theme?: 'light' | 'dark';
 }
 
-export const IfrnLogo: React.FC<LogoProps> = ({ className = "", sector = "", campus = "", boldSubtext = false }) => {
+export const IfrnLogo: React.FC<LogoProps> = ({ className = "", sector = "", campus = "", boldSubtext = false, theme = 'dark' }) => {
+  const textColor = theme === 'light' ? 'text-white' : 'text-gray-800';
+  const subtextColor = theme === 'light' ? 'text-white/80' : 'text-gray-500';
+
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* SVG Logo */}
@@ -40,8 +45,8 @@ export const IfrnLogo: React.FC<LogoProps> = ({ className = "", sector = "", cam
 
       {/* Text */}
       <div className="flex flex-col leading-none">
-        <span className="font-bold text-xl tracking-tight text-gray-800">IFRN</span>
-        <span className={`text-xs tracking-wider uppercase ${boldSubtext ? 'font-black text-gray-800' : 'font-semibold text-gray-500'}`}>
+        <span className={`font-bold text-xl tracking-tight ${textColor}`}>IFRN</span>
+        <span className={`text-xs tracking-wider uppercase ${boldSubtext ? `font-black ${textColor}` : `font-semibold ${subtextColor}`}`}>
           {sector}{sector && campus && " - "}{campus}
         </span>
       </div>

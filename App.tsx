@@ -11,7 +11,7 @@ import { ArmariosTab } from './components/Tabs/ArmariosTab';
 import { BooksTab } from './components/Tabs/BooksTab';
 import { BookLoansTab } from './components/Tabs/BookLoansTab';
 import { NadaConstaTab } from './components/Tabs/NadaConstaTab';
-import { LogOut, Package, ClipboardList, Users, ShieldCheck, KeyRound, Menu, X, Settings, Trash, AlertTriangle, ChevronDown, ChevronUp, UserX, FileX, Save, Building2, Eye, EyeOff, Loader2, Key, Search, Trash2, ShieldAlert, AlertCircle, CheckCircle2, History, Send, ArrowRight, LayoutGrid, Download, BookOpen, FileCheck } from 'lucide-react';
+import { LogOut, Package, ClipboardList, Users, ShieldCheck, KeyRound, Menu, X, Settings, Trash, AlertTriangle, ChevronDown, ChevronUp, UserX, FileX, Save, Building2, Eye, EyeOff, Loader2, Key, Search, Trash2, ShieldAlert, AlertCircle, CheckCircle2, History, Send, ArrowRight, LayoutGrid, Download, BookOpen, FileCheck, Lock, User as UserIcon } from 'lucide-react';
 import { Modal } from './components/ui/Modal';
 
 type ConfirmActionType = 'DELETE_ITEMS' | 'DELETE_REPORTS' | 'DELETE_PEOPLE' | 'DELETE_USERS' | 'FACTORY_RESET' | null;
@@ -365,53 +365,102 @@ const App: React.FC = () => {
   // 1. Initial Login Screen
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
-          <div className="bg-gray-50 p-8 flex flex-col items-center border-b border-gray-100">
-            <IfrnLogo className="mb-2" sector="SIADES" campus="Sistema de Administração Escolar" boldSubtext={true} />
+      <div className="min-h-screen flex w-full bg-white animate-fade-in-down">
+        {/* Lado da Imagem/Branding - Escondido em Mobile */}
+        <div className="hidden lg:flex w-1/2 xl:w-2/3 bg-ifrn-green relative overflow-hidden items-center justify-center p-12 text-white">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-emerald-900 opacity-90" />
+          <div className="absolute top-0 right-0 p-12 opacity-10">
+            <svg width="400" height="400" viewBox="0 0 100 100" fill="white">
+              <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="2" fill="none" />
+              <rect x="20" y="20" width="20" height="20" rx="4" fill="currentColor" />
+              <rect x="60" y="60" width="20" height="20" rx="4" fill="currentColor" />
+            </svg>
           </div>
-          <div className="p-8">
-            <h2 className="text-xl font-bold text-gray-800 text-center mb-6">Acesso ao Sistema</h2>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Matrícula</label>
-                <input
-                  type="text"
-                  value={loginMat}
-                  onChange={e => setLoginMat(e.target.value)}
-                  className="w-full border rounded-lg p-3 outline-none focus:ring-2 focus:ring-ifrn-green"
-                  placeholder="Seu usuário..."
-                />
+
+          <div className="relative z-10 max-w-lg text-left animate-fade-in-up">
+            <div className="inline-block p-4 bg-white/10 backdrop-blur-md rounded-2xl mb-8 border border-white/20 shadow-xl">
+              <IfrnLogo theme="light" className="scale-110" />
+            </div>
+            <h1 className="text-6xl font-black mb-6 tracking-tighter leading-none">
+              SIADES <br />
+              <span className="text-green-300">INTEGRADO</span>
+            </h1>
+            <p className="text-xl text-green-100 font-medium leading-relaxed max-w-md border-l-4 border-green-400 pl-6">
+              Sistema de Administração Escolar para gestão unificada de recursos, pessoas e acessos do IFRN.
+            </p>
+          </div>
+        </div>
+
+        {/* Lado do Formulário */}
+        <div className="w-full lg:w-1/2 xl:w-1/3 flex items-center justify-center p-8 lg:p-16 relative">
+          <div className="w-full max-w-sm space-y-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <div className="text-center lg:text-left">
+              <div className="lg:hidden mb-8 flex justify-center">
+                <IfrnLogo />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Senha</label>
+              <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">Bem-vindo de volta.</h2>
+              <p className="text-gray-500">Insira suas credenciais para acessar o painel.</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-5">
                 <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-ifrn-green text-gray-400">
+                    <UserIcon size={20} strokeWidth={2} />
+                  </div>
+                  <input
+                    type="text"
+                    value={loginMat}
+                    onChange={e => setLoginMat(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-ifrn-green/20 focus:border-ifrn-green block w-full pl-12 p-4 transition-all outline-none font-medium placeholder:text-gray-400"
+                    placeholder="Sua Matrícula/SIAPE"
+                    required
+                  />
+                </div>
+
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-ifrn-green text-gray-400">
+                    <Lock size={20} strokeWidth={2} />
+                  </div>
                   <input
                     type={showLoginPassword ? "text" : "password"}
                     value={loginPass}
                     onChange={e => setLoginPass(e.target.value)}
-                    className="w-full border rounded-lg p-3 pr-10 outline-none focus:ring-2 focus:ring-ifrn-green"
-                    placeholder="Sua senha..."
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-ifrn-green/20 focus:border-ifrn-green block w-full pl-12 p-4 pr-12 transition-all outline-none font-medium placeholder:text-gray-400"
+                    placeholder="Sua Senha"
+                    required
                   />
                   <button
                     type="button"
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-ifrn-green opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200"
-                    tabIndex={-1}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-ifrn-green cursor-pointer transition-colors"
                   >
                     {showLoginPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
-              {loginError && <p className="text-sm text-red-500 text-center">{loginError}</p>}
+
+              {loginError && (
+                <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl flex items-center gap-3 animate-scale-in border border-red-100">
+                  <AlertCircle size={18} className="flex-shrink-0" />
+                  <span className="font-medium">{loginError}</span>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-ifrn-green text-white font-bold py-3 rounded-lg hover:bg-ifrn-darkGreen transition-colors shadow-md flex justify-center items-center gap-2"
+                className="w-full text-white bg-ifrn-green hover:bg-ifrn-darkGreen focus:ring-4 focus:ring-green-300 font-bold rounded-xl text-lg px-5 py-4 text-center transition-all transform active:scale-[0.98] shadow-lg shadow-green-200 flex items-center justify-center gap-2 group"
               >
-                {loading ? <Loader2 className="animate-spin" /> : 'Entrar'}
+                {loading ? <Loader2 className="animate-spin" /> : <>Acessar Sistema <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" /></>}
               </button>
             </form>
+
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mt-8">
+                &copy; {new Date().getFullYear()} IFRN - Campus Nova Cruz. <br /> Todos os direitos reservados.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -421,15 +470,21 @@ const App: React.FC = () => {
   // 2. Module Selector Screen
   if (showModuleSelector) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="max-w-4xl w-full">
-          <div className="text-center mb-12">
-            <IfrnLogo className="mx-auto mb-6 scale-125" sector={systemSector} campus={systemCampus} />
-            <h2 className="text-3xl font-black text-gray-800 tracking-tight">Qual sistema deseja acessar, {user.name.split(' ')[0]}?</h2>
-            <p className="text-gray-500 mt-2">Escolha uma das frentes de gestão abaixo para continuar.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 p-6">
+        <div className="max-w-7xl w-full">
+          <div className="text-center mb-16 animate-fade-in-down">
+            <IfrnLogo className="mx-auto mb-8 scale-125 drop-shadow-sm" sector={systemSector} campus={systemCampus} />
+            <div className="space-y-4">
+              <h2 className="text-4xl font-black text-gray-800 tracking-tight leading-tight">
+                Olá, <span className="text-ifrn-green">{user.name.split(' ')[0]}</span>.
+              </h2>
+              <p className="text-lg text-gray-500 max-w-2xl mx-auto font-medium">
+                Selecione o sistema que deseja gerenciar hoje.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 px-4">
             {/* Achados e Perdidos */}
             {hasAccess('achados') && (
               <button
@@ -438,19 +493,19 @@ const App: React.FC = () => {
                   setActiveTab('achados');
                   setShowModuleSelector(false);
                 }}
-                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-ifrn-green transition-all group text-left relative overflow-hidden"
+                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-ifrn-green transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
               >
-                <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-ifrn-green/5 transition-colors">
-                  <Package size={120} />
+                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-ifrn-green/10 transition-colors duration-500">
+                  <Package size={140} strokeWidth={1} />
                 </div>
-                <div className="relative z-10">
-                  <div className="bg-ifrn-green w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-green-100 group-hover:scale-110 transition-transform">
-                    <Package size={28} />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-ifrn-green to-emerald-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-green-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <Package size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-800 mb-2">Achados e Perdidos</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">Gerencie itens encontrados e devoluções.</p>
-                  <div className="mt-6 flex items-center gap-2 text-ifrn-green font-bold text-sm">
-                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-ifrn-green transition-colors">Achados e Perdidos</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Gerencie itens encontrados, registre devoluções e mantenha o controle do acervo.</p>
+                  <div className="mt-auto flex items-center gap-2 text-ifrn-green font-bold text-sm tracking-wide bg-green-50 w-fit px-4 py-2 rounded-full group-hover:bg-ifrn-green group-hover:text-white transition-all">
+                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </button>
@@ -464,19 +519,19 @@ const App: React.FC = () => {
                   setActiveTab('armarios');
                   setShowModuleSelector(false);
                 }}
-                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-ifrn-darkGreen transition-all group text-left relative overflow-hidden"
+                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-emerald-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
               >
-                <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-ifrn-darkGreen/5 transition-colors">
-                  <Key size={120} />
+                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-emerald-600/10 transition-colors duration-500">
+                  <Key size={140} strokeWidth={1} />
                 </div>
-                <div className="relative z-10">
-                  <div className="bg-ifrn-darkGreen w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-emerald-100 group-hover:scale-110 transition-transform">
-                    <Key size={28} />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-emerald-600 to-teal-700 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-emerald-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <Key size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-800 mb-2">Gestão de Armários</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">Controle empréstimos e ocupação.</p>
-                  <div className="mt-6 flex items-center gap-2 text-ifrn-darkGreen font-bold text-sm">
-                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-emerald-700 transition-colors">Gestão de Armários</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Controle de empréstimos, devoluções, manutenção e ocupação dos armários escolares.</p>
+                  <div className="mt-auto flex items-center gap-2 text-emerald-700 font-bold text-sm tracking-wide bg-emerald-50 w-fit px-4 py-2 rounded-full group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </button>
@@ -490,19 +545,19 @@ const App: React.FC = () => {
                   setActiveTab('livros-catalogo');
                   setShowModuleSelector(false);
                 }}
-                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-orange-600 transition-all group text-left relative overflow-hidden"
+                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-orange-500 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
               >
-                <div className="absolute right-0 top-0 p-6 text-orange-50 group-hover:text-orange-600/5 transition-colors">
-                  <BookOpen size={120} />
+                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-orange-500/10 transition-colors duration-500">
+                  <BookOpen size={140} strokeWidth={1} />
                 </div>
-                <div className="relative z-10">
-                  <div className="bg-orange-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-orange-100 group-hover:scale-110 transition-transform">
-                    <BookOpen size={28} />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-orange-500 to-amber-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-orange-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <BookOpen size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-800 mb-2">Livros PNLD</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">Gerencie catálogo e empréstimos de livros.</p>
-                  <div className="mt-6 flex items-center gap-2 text-orange-600 font-bold text-sm">
-                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-orange-600 transition-colors">Livros PNLD</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Gerencie o catálogo didático, realize empréstimos e controle o estoque de livros.</p>
+                  <div className="mt-auto flex items-center gap-2 text-orange-600 font-bold text-sm tracking-wide bg-orange-50 w-fit px-4 py-2 rounded-full group-hover:bg-orange-600 group-hover:text-white transition-all">
+                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </button>
@@ -516,19 +571,19 @@ const App: React.FC = () => {
                   setActiveTab('nadaconsta');
                   setShowModuleSelector(false);
                 }}
-                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-blue-600 transition-all group text-left relative overflow-hidden"
+                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-blue-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
               >
-                <div className="absolute right-0 top-0 p-6 text-blue-50 group-hover:text-blue-600/5 transition-colors">
-                  <FileCheck size={120} />
+                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-blue-600/10 transition-colors duration-500">
+                  <FileCheck size={140} strokeWidth={1} />
                 </div>
-                <div className="relative z-10">
-                  <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
-                    <FileCheck size={28} />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-blue-600 to-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <FileCheck size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-800 mb-2">Nada Consta</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">Verificação de pendências de armários e livros.</p>
-                  <div className="mt-6 flex items-center gap-2 text-blue-600 font-bold text-sm">
-                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-blue-700 transition-colors">Nada Consta</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Emissão rápida de declarações e verificação de pendências de alunos e servidores.</p>
+                  <div className="mt-auto flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide bg-blue-50 w-fit px-4 py-2 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </button>
@@ -542,19 +597,19 @@ const App: React.FC = () => {
                   setActiveTab('pessoas');
                   setShowModuleSelector(false);
                 }}
-                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-blue-600 transition-all group text-left relative overflow-hidden"
+                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-cyan-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
               >
-                <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-blue-600/5 transition-colors">
-                  <Users size={120} />
+                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-cyan-600/10 transition-colors duration-500">
+                  <Users size={140} strokeWidth={1} />
                 </div>
-                <div className="relative z-10">
-                  <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
-                    <Users size={28} />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-cyan-600 to-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-cyan-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <Users size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-800 mb-2">Pessoas</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">Gerencie cadastros de alunos e servidores.</p>
-                  <div className="mt-6 flex items-center gap-2 text-blue-600 font-bold text-sm">
-                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-cyan-700 transition-colors">Pessoas</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Base de dados centralizada de alunos, servidores e colaboradores da instituição.</p>
+                  <div className="mt-auto flex items-center gap-2 text-cyan-700 font-bold text-sm tracking-wide bg-cyan-50 w-fit px-4 py-2 rounded-full group-hover:bg-cyan-600 group-hover:text-white transition-all">
+                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </button>
@@ -568,46 +623,46 @@ const App: React.FC = () => {
                   setActiveTab('usuarios');
                   setShowModuleSelector(false);
                 }}
-                className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border-2 border-transparent hover:border-purple-600 transition-all group text-left relative overflow-hidden"
+                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-purple-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
               >
-                <div className="absolute right-0 top-0 p-6 text-gray-50 group-hover:text-purple-600/5 transition-colors">
-                  <ShieldCheck size={120} />
+                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-purple-600/10 transition-colors duration-500">
+                  <ShieldCheck size={140} strokeWidth={1} />
                 </div>
-                <div className="relative z-10">
-                  <div className="bg-purple-600 w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-purple-100 group-hover:scale-110 transition-transform">
-                    <ShieldCheck size={28} />
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="bg-gradient-to-br from-purple-600 to-violet-700 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-purple-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    <ShieldCheck size={32} />
                   </div>
-                  <h3 className="text-xl font-black text-gray-800 mb-2">Usuários</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">Gerencie acessos e níveis de permissão.</p>
-                  <div className="mt-6 flex items-center gap-2 text-purple-600 font-bold text-sm">
-                    Acessar <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-purple-700 transition-colors">Usuários</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Administração de contas de acesso, níveis de permissão e segurança do sistema.</p>
+                  <div className="mt-auto flex items-center gap-2 text-purple-700 font-bold text-sm tracking-wide bg-purple-50 w-fit px-4 py-2 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-all">
+                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
               </button>
             )}
           </div>
 
-          <div className="mt-12 flex flex-col items-center gap-4">
+          <div className="mt-16 flex flex-col md:flex-row items-center justify-center gap-4 animate-fade-in-up">
             <div className="flex gap-4">
               <button
                 onClick={() => setShowPasswordModal(true)}
-                className="px-6 py-2 text-gray-600 hover:text-ifrn-green font-medium transition-colors flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md"
+                className="px-6 py-3 text-gray-600 hover:text-ifrn-green font-bold transition-all flex items-center gap-3 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-ifrn-green hover:-translate-y-0.5 active:translate-y-0"
               >
-                <KeyRound size={18} /> Alterar Minha Senha
+                <KeyRound size={20} /> Alterar Minha Senha
               </button>
 
               {canConfigure && (
                 <button
                   onClick={openConfigModal}
-                  className="px-6 py-2 text-gray-600 hover:text-ifrn-green font-medium transition-colors flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md"
+                  className="px-6 py-3 text-gray-600 hover:text-blue-600 font-bold transition-all flex items-center gap-3 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-blue-600 hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  <Settings size={18} /> Configurações
+                  <Settings size={20} /> Configurações
                 </button>
               )}
             </div>
 
-            <button onClick={handleLogout} className="px-6 py-2 text-red-400 hover:text-red-500 font-medium transition-colors flex items-center gap-2">
-              <LogOut size={18} /> Sair da conta
+            <button onClick={handleLogout} className="px-6 py-3 text-red-500 hover:text-red-600 hover:bg-red-50 font-bold transition-all flex items-center gap-3 rounded-xl hover:shadow-md border border-transparent hover:border-red-100">
+              <LogOut size={20} /> Sair da conta
             </button>
           </div>
         </div>
