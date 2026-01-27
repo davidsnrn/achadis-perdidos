@@ -13,9 +13,10 @@ interface Props {
     onUpdate: () => void;
 }
 
-export const MaterialManagementTab: React.FC<Props> = ({ materials, loans, people, user, onUpdate }) => {
+export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans = [], people = [], user, onUpdate }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'RETURNED'>('ALL');
+    const [filterStatus, setFilterStatus] = useState<'ALL' | 'AVAILABLE' | 'LOANED'>('ALL');
+    const [activeTab, setActiveTab] = useState<'management' | 'reports'>('management');
 
     // Material form
     const [showMaterialForm, setShowMaterialForm] = useState(false);
@@ -43,42 +44,39 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials, loans, peopl
         return { active, returned, total: loans.length };
     }, [loans]);
 
-    const filteredLoans = useMemo(() => {
-        let result = loans;
+    const inventory = useMemo(() => {
+        const activeLoansMap = new Map<string, MaterialLoan>();
+        loans.forEach(loan => {
+            if (loan.status === 'ACTIVE') {
+                activeLoansMap.set(loan.materialId, loan);
+            }
+        });
 
-        if (filterStatus !== 'ALL') {
-            result = result.filter(l => l.status === filterStatus);
-        }
+        return materials.map(material => {
+            const activeLoan = activeLoansMap.get(material.id);
+            return {
+                ...material,
+                status: (activeLoan ? 'LOANED' : 'AVAILABLE') as 'LOANED' | 'AVAILABLE',
+                activeLoan: activeLoan || null
+            };
+        });
+    }, [materials, loans]);
 
-        if (searchTerm.trim()) {
-            // Parse search terms: split by spaces
-            const terms = searchTerm.trim().split(/\s+/);
+    const filteredInventory = useMemo(() => {
+        return inventory.filter(item => {
+            const matchesSearch =
+                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (item.activeLoan?.personName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-            result = result.filter(loan => {
-                // Every term must match
-                return terms.every(term => {
-                    // Check if term starts with # (code search)
-                    if (term.startsWith('#')) {
-                        const codeQuery = term.substring(1).toLowerCase();
-                        return loan.materialCode.toLowerCase().includes(codeQuery);
-                    }
+            if (!matchesSearch) return false;
 
-                    // Otherwise, search across all fields
-                    const query = term.toLowerCase();
-                    return (
-                        loan.materialName.toLowerCase().includes(query) ||
-                        loan.materialCode.toLowerCase().includes(query) ||
-                        loan.personName.toLowerCase().includes(query) ||
-                        loan.personMatricula.toLowerCase().includes(query) ||
-                        loan.loanDate.includes(query) ||
-                        (loan.returnDate && loan.returnDate.includes(query))
-                    );
-                });
-            });
-        }
-
-        return result.sort((a, b) => new Date(b.loanDate).getTime() - new Date(a.loanDate).getTime());
-    }, [loans, searchTerm, filterStatus]);
+            if (filterStatus === 'ALL') return true;
+            if (filterStatus === 'AVAILABLE') return item.status === 'AVAILABLE';
+            if (filterStatus === 'LOANED') return item.status === 'LOANED';
+            return true;
+        });
+    }, [inventory, searchTerm, filterStatus]);
 
     const filteredPeople = useMemo(() => {
         if (!personSearch.trim()) return [];
@@ -192,148 +190,275 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials, loans, peopl
 
     return (
         <div className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-amber-100 text-sm font-medium">Empréstimos Ativos</p>
-                            <p className="text-4xl font-black mt-2">{stats.active}</p>
-                        </div>
-                        <div className="bg-white/20 p-3 rounded-lg">
-                            <AlertCircle size={32} />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-green-100 text-sm font-medium">Devolvidos</p>
-                            <p className="text-4xl font-black mt-2">{stats.returned}</p>
-                        </div>
-                        <div className="bg-white/20 p-3 rounded-lg">
-                            <CheckCircle size={32} />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-indigo-100 text-sm font-medium">Total de Materiais</p>
-                            <p className="text-4xl font-black mt-2">{materials.length}</p>
-                        </div>
-                        <div className="bg-white/20 p-3 rounded-lg">
-                            <TrendingUp size={32} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="relative w-full sm:w-96">
-                    <input
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                        placeholder="Pesquisar (#001, joao, 2025)..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
-                    <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-                </div>
-
-                <div className="flex gap-2 w-full sm:w-auto">
-                    <button
-                        onClick={() => {
-                            setEditingMaterial(null);
-                            setFormMaterialName('');
-                            setShowMaterialForm(true);
-                        }}
-                        className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-sm hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 text-sm"
-                    >
-                        <Plus size={18} /> Cadastrar Material
-                    </button>
-                    <button
-                        onClick={() => setShowLoanForm(true)}
-                        className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg shadow-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 text-sm"
-                    >
-                        <Plus size={18} /> Novo Empréstimo
-                    </button>
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex gap-2 justify-center">
+            {/* Tab Navigation */}
+            <div className="bg-white p-1 rounded-xl shadow-sm border border-gray-100 inline-flex">
                 <button
-                    onClick={() => setFilterStatus('ALL')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    onClick={() => setActiveTab('management')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'management' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
-                    Todos
+                    <FileText size={18} /> Gerenciar Materiais
                 </button>
                 <button
-                    onClick={() => setFilterStatus('ACTIVE')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === 'ACTIVE' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    onClick={() => setActiveTab('reports')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'reports' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
-                    Ativos
-                </button>
-                <button
-                    onClick={() => setFilterStatus('RETURNED')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === 'RETURNED' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                    Devolvidos
+                    <Calendar size={18} /> Relatório de Movimentações
                 </button>
             </div>
 
-            {/* Loans Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
-                            <tr>
-                                <th className="p-4 text-left">Código</th>
-                                <th className="p-4 text-left">Material</th>
-                                <th className="p-4 text-left">Pessoa</th>
-                                <th className="p-4 text-left">Empréstimo</th>
-                                <th className="p-4 text-left">Devolução</th>
-                                <th className="p-4 text-left">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {filteredLoans.map(loan => (
-                                <tr key={loan.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setViewingLoan(loan)}>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2">
-                                            <Hash size={14} className="text-indigo-500" />
-                                            <span className="font-mono text-xs font-bold text-indigo-600">{loan.materialCode}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 font-bold text-gray-800">{loan.materialName}</td>
-                                    <td className="p-4">
-                                        <div>
-                                            <p className="text-gray-800 font-medium">{loan.personName}</p>
-                                            <p className="text-xs text-gray-500">{loan.personMatricula}</p>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-xs text-gray-600">{new Date(loan.loanDate).toLocaleString('pt-BR')}</td>
-                                    <td className="p-4 text-xs">{loan.returnDate ? new Date(loan.returnDate).toLocaleString('pt-BR') : <span className="text-amber-600 font-medium">Pendente</span>}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${loan.status === 'ACTIVE' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                                            {loan.status === 'RETURNED' && <CheckCircle size={10} />}
-                                            {loan.status === 'ACTIVE' ? 'ATIVO' : 'DEVOLVIDO'}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredLoans.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="p-12 text-center text-gray-400 italic">Nenhum registro encontrado.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            {/* MANAGEMENT TAB */}
+            {activeTab === 'management' && (
+                <div className="space-y-6 animate-fadeIn">
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-indigo-100 text-sm font-medium">Total de Materiais</p>
+                                    <p className="text-4xl font-black mt-2">{materials.length}</p>
+                                </div>
+                                <div className="bg-white/20 p-3 rounded-lg">
+                                    <TrendingUp size={32} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-green-100 text-sm font-medium">Disponíveis</p>
+                                    <p className="text-4xl font-black mt-2">{inventory.filter(i => i.status === 'AVAILABLE').length}</p>
+                                </div>
+                                <div className="bg-white/20 p-3 rounded-lg">
+                                    <CheckCircle size={32} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-amber-100 text-sm font-medium">Emprestados</p>
+                                    <p className="text-4xl font-black mt-2">{inventory.filter(i => i.status === 'LOANED').length}</p>
+                                </div>
+                                <div className="bg-white/20 p-3 rounded-lg">
+                                    <AlertCircle size={32} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div className="relative w-full sm:w-96">
+                            <input
+                                className="w-full pl-10 pr-4 py-2 bg-gray-50 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                placeholder="Pesquisar material, código..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                        </div>
+
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button
+                                onClick={() => {
+                                    setEditingMaterial(null);
+                                    setFormMaterialName('');
+                                    setShowMaterialForm(true);
+                                }}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-sm hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 text-sm"
+                            >
+                                <Plus size={18} /> Cadastrar Material
+                            </button>
+                            <button
+                                onClick={() => setShowLoanForm(true)}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg shadow-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 text-sm"
+                            >
+                                <Plus size={18} /> Novo Empréstimo
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="flex gap-2 justify-center">
+                        <button
+                            onClick={() => setFilterStatus('ALL')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('AVAILABLE')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === 'AVAILABLE' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                            Disponíveis
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('LOANED')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filterStatus === 'LOANED' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                            Emprestados
+                        </button>
+                    </div>
+
+                    {/* Inventory Table */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
+                                    <tr>
+                                        <th className="p-4 text-left">Código</th>
+                                        <th className="p-4 text-left">Material</th>
+                                        <th className="p-4 text-left">Status</th>
+                                        <th className="p-4 text-left">Emprestado Para</th>
+                                        <th className="p-4 text-left">Desde</th>
+                                        <th className="p-4 text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredInventory.map(item => (
+                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Hash size={14} className="text-indigo-500" />
+                                                    <span className="font-mono text-xs font-bold text-indigo-600">{item.code}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 font-bold text-gray-800">{item.name}</td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${item.status === 'AVAILABLE' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                    {item.status === 'AVAILABLE' ? <CheckCircle size={10} /> : <AlertTriangle size={10} />}
+                                                    {item.status === 'AVAILABLE' ? 'DISPONÍVEL' : 'EMPRESTADO'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                {item.activeLoan ? (
+                                                    <div>
+                                                        <p className="text-gray-800 font-medium">{item.activeLoan.personName}</p>
+                                                        <p className="text-xs text-gray-500">{item.activeLoan.personMatricula}</p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400">-</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-xs text-gray-600">
+                                                {item.activeLoan ? new Date(item.activeLoan.loanDate).toLocaleString('pt-BR') : '-'}
+                                            </td>
+                                            <td className="p-4 flex justify-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingMaterial(item);
+                                                        setFormMaterialName(item.name);
+                                                        setShowMaterialForm(true);
+                                                    }}
+                                                    className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                                                    title="Editar Material"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                {item.status === 'LOANED' && item.activeLoan && (
+                                                    <button
+                                                        onClick={() => setViewingLoan(item.activeLoan!)}
+                                                        className="p-1 text-amber-500 hover:text-amber-700 transition-colors"
+                                                        title="Ver Empréstimo / Devolver"
+                                                    >
+                                                        <CornerUpRight size={16} />
+                                                    </button>
+                                                )}
+                                                {item.status === 'AVAILABLE' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            // Logic to pre-fill loan form could go here, 
+                                                            // but for now just open the empty form is safer
+                                                            setShowLoanForm(true);
+                                                        }}
+                                                        className="p-1 text-green-500 hover:text-green-700 transition-colors"
+                                                        title="Emprestar"
+                                                    >
+                                                        <Plus size={16} />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredInventory.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} className="p-12 text-center text-gray-400 italic">Nenhum material encontrado.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* REPORTS TAB */}
+            {activeTab === 'reports' && (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-800">Relatório Completo de Movimentações</h3>
+                            <p className="text-sm text-gray-500">Histórico de todos os empréstimos e devoluções.</p>
+                        </div>
+                        <button
+                            onClick={onUpdate}
+                            className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-bold rounded-lg hover:bg-gray-50 hover:text-indigo-600 transition-all flex items-center gap-2 text-sm shadow-sm"
+                        >
+                            <span className="text-xl">↻</span> Atualizar Planilha
+                        </button>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
+                                    <tr>
+                                        <th className="p-4 text-left">Material</th>
+                                        <th className="p-4 text-left">Pessoa</th>
+                                        <th className="p-4 text-left">Data Empréstimo</th>
+                                        <th className="p-4 text-left">Data Devolução</th>
+                                        <th className="p-4 text-left">Observação</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {loans.sort((a, b) => new Date(b.loanDate).getTime() - new Date(a.loanDate).getTime()).map(loan => (
+                                        <tr key={loan.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="p-4">
+                                                <div className="font-bold text-gray-800">{loan.materialName}</div>
+                                                <div className="text-xs text-gray-500 font-mono">#{loan.materialCode}</div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-medium text-gray-800">{loan.personName}</div>
+                                                <div className="text-xs text-gray-500">{loan.personMatricula}</div>
+                                            </td>
+                                            <td className="p-4 text-gray-600">
+                                                {new Date(loan.loanDate).toLocaleString('pt-BR')}
+                                            </td>
+                                            <td className="p-4">
+                                                {loan.returnDate ? (
+                                                    <span className="text-green-700 font-medium">{new Date(loan.returnDate).toLocaleString('pt-BR')}</span>
+                                                ) : (
+                                                    <span className="text-amber-600 font-bold text-xs bg-amber-50 px-2 py-1 rounded-full">EM ABERTO</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-gray-500 italic max-w-xs truncate">
+                                                {loan.observation || '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {loans.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="p-12 text-center text-gray-400 italic">Nenhum histórico disponível.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Material Form Modal */}
             <Modal isOpen={showMaterialForm} onClose={() => setShowMaterialForm(false)} title={editingMaterial ? 'Editar Material' : 'Novo Material'}>

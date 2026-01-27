@@ -856,7 +856,7 @@ const App: React.FC = () => {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setMobileMenuOpen(false)}></div>
           <div className="relative w-72 max-w-[85vw] bg-white h-full shadow-2xl flex flex-col animate-slideInLeft overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-              <IfrnLogo className="scale-90 origin-left" sector={systemSector} campus={systemCampus} />
+              <IfrnLogo className="scale-90 origin-left flex-shrink-0" sector={systemSector} campus={systemCampus} />
               <button onClick={() => setMobileMenuOpen(false)} className="text-gray-400 hover:text-red-500 p-1"><X size={24} /></button>
             </div>
             <div className="p-4 bg-gray-50 border-b border-gray-100">
@@ -940,7 +940,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <button onClick={() => setMobileMenuOpen(true)} className="md:hidden text-gray-500 hover:text-ifrn-green p-1 transition-colors"><Menu size={24} /></button>
-            <IfrnLogo sector={systemSector} campus={systemCampus} />
+            <IfrnLogo sector={systemSector} campus={systemCampus} className="flex-shrink-0" />
           </div>
           <div className="flex items-center gap-4">
             {loading && <Loader2 className="animate-spin text-ifrn-green" size={20} />}
