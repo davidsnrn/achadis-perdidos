@@ -379,9 +379,30 @@ const App: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-emerald-900 opacity-90" />
           <div className="absolute top-0 right-0 p-12 opacity-10">
             <svg width="400" height="400" viewBox="0 0 100 100" fill="white">
-              <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="2" fill="none" />
+              {/*<circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="2" fill="none" />
               <rect x="20" y="20" width="20" height="20" rx="4" fill="currentColor" />
-              <rect x="60" y="60" width="20" height="20" rx="4" fill="currentColor" />
+              <rect x="60" y="60" width="20" height="20" rx="4" fill="currentColor" />*/}
+
+
+
+              {/* LINHA 1 (Topo) - Círculo Vermelho + 2 Quadrados Verdes */}
+              <circle cx="19" cy="24" r="9" fill="currentColor" />
+              <rect x="29" y="15" width="18" height="18" rx="4" fill="currentColor" />
+              <rect x="48" y="15" width="18" height="18" rx="4" fill="currentColor" />
+
+              {/* LINHA 2 (Meio Superior) - 2 Quadrados Verdes */}
+              <rect x="10" y="34" width="18" height="18" rx="4" fill="currentColor" />
+              <rect x="29" y="34" width="18" height="18" rx="4" fill="currentColor" />
+
+              {/* LINHA 3 (Meio Inferior) - 3 Quadrados Verdes */}
+              <rect x="10" y="53" width="18" height="18" rx="4" fill="currentColor" />
+              <rect x="29" y="53" width="18" height="18" rx="4" fill="currentColor" />
+              <rect x="48" y="53" width="18" height="18" rx="4" fill="currentColor" />
+
+              {/* LINHA 4 (Base) - 2 Quadrados Verdes */}
+              <rect x="10" y="72" width="18" height="18" rx="4" fill="currentColor" />
+              <rect x="29" y="72" width="18" height="18" rx="4" fill="currentColor" />
+
             </svg>
           </div>
 
@@ -394,7 +415,7 @@ const App: React.FC = () => {
               <span className="text-green-300">INTEGRADO</span>
             </h1>
             <p className="text-xl text-green-100 font-medium leading-relaxed max-w-md border-l-4 border-green-400 pl-6">
-              Sistema de Administração Escolar para gestão unificada do IFRN.
+              Sistema de Administração Escolar para gestão unificada.
             </p>
           </div>
         </div>
