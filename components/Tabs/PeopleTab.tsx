@@ -176,7 +176,6 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
     let processingLog = '';
 
     const existingMatriculas = new Set(people.map(p => p.matricula.trim()));
-    const existingNames = new Set(people.map(p => normalizeText(p.name)));
 
     let totalInFiles = 0;
     let duplicatesFound = 0;
@@ -234,9 +233,7 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
           if (cleanName.length < 2 || cleanMatricula.length < 2) continue;
 
           totalInFiles++;
-          const normName = normalizeText(cleanName);
-
-          if (existingMatriculas.has(cleanMatricula) || existingNames.has(normName)) {
+          if (existingMatriculas.has(cleanMatricula)) {
             duplicatesFound++;
             continue;
           }
@@ -249,7 +246,6 @@ export const PeopleTab: React.FC<Props> = ({ people, onUpdate, user }) => {
           });
 
           existingMatriculas.add(cleanMatricula);
-          existingNames.add(normName);
           newRecords++;
           fileCount++;
         }
