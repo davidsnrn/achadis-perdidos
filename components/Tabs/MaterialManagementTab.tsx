@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Material, MaterialLoan } from '../../types-materiais';
 import { Person, User } from '../../types';
 import { StorageService } from '../../services/storage';
-import { Search, Plus, Edit2, Trash2, Hash, AlertTriangle, Copy, CheckCircle, AlertCircle, Calendar, User as UserIcon, FileText, CornerUpRight, TrendingUp } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Hash, AlertTriangle, Copy, CheckCircle, AlertCircle, Calendar, User as UserIcon, FileText, CornerUpRight, TrendingUp, Loader2 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -42,7 +42,8 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
     // Viewing
     const [viewingLoan, setViewingLoan] = useState<MaterialLoan | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const stats = useMemo(() => {
         const active = loans.filter(l => l.status === 'ACTIVE').length;
@@ -180,6 +181,45 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
         }
     };
 
+    const handleDeleteBulk = async () => {
+        if (!selectedIds.length) return;
+
+        const confirmMsg = selectedIds.length === 1
+            ? 'Tem certeza que deseja excluir este material? Empréstimos ativos serão marcados como DELETADOS.'
+            : `Tem certeza que deseja excluir os ${selectedIds.length} materiais selecionados? Empréstimos ativos serão marcados como DELETADOS.`;
+
+        if (!window.confirm(confirmMsg)) return;
+
+        setIsDeleting(true);
+        try {
+            await StorageService.deleteMaterialsBulk(selectedIds);
+            await onUpdate();
+            setSelectedIds([]);
+            alert('Material(is) excluído(s) com sucesso!');
+        } catch (error) {
+            console.error(error);
+            alert('Erro ao excluir material(is).');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredInventory.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredInventory.map(i => i.id));
+        }
+    };
+
+    const toggleSelectOne = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const isAdminOrAdvanced = user.level === 'Administrador' || user.level === 'Avançado';
+
     const copyToClipboard = async () => {
         try {
             await navigator.clipboard.writeText(generatedCode);
@@ -272,6 +312,16 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                         </div>
 
                         <div className="flex gap-2 w-full sm:w-auto">
+                            {isAdminOrAdvanced && selectedIds.length > 0 && (
+                                <button
+                                    onClick={handleDeleteBulk}
+                                    disabled={isDeleting}
+                                    className="flex-1 sm:flex-none px-4 py-2 bg-red-600 text-white font-bold rounded-lg shadow-sm hover:bg-red-700 transition-all flex items-center justify-center gap-2 text-sm"
+                                >
+                                    {isDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                    Excluir ({selectedIds.length})
+                                </button>
+                            )}
                             <button
                                 onClick={() => {
                                     setEditingMaterial(null);
@@ -298,6 +348,16 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50 text-gray-600 font-semibold uppercase text-xs">
                                     <tr>
+                                        {isAdminOrAdvanced && (
+                                            <th className="p-4 w-10">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                    checked={filteredInventory.length > 0 && selectedIds.length === filteredInventory.length}
+                                                    onChange={toggleSelectAll}
+                                                />
+                                            </th>
+                                        )}
                                         <th className="p-4 text-left">Código</th>
                                         <th className="p-4 text-left">Material</th>
                                         <th className="p-4 text-left">Status</th>
@@ -309,9 +369,19 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                     {filteredInventory.map(item => (
                                         <tr
                                             key={item.id}
-                                            className="hover:bg-gray-50 transition-colors cursor-pointer"
+                                            className={`hover:bg-gray-50 transition-colors cursor-pointer ${selectedIds.includes(item.id) ? 'bg-indigo-50/50' : ''}`}
                                             onClick={() => setViewingItem(item)}
                                         >
+                                            {isAdminOrAdvanced && (
+                                                <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                        checked={selectedIds.includes(item.id)}
+                                                        onChange={() => toggleSelectOne(item.id)}
+                                                    />
+                                                </td>
+                                            )}
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2">
                                                     <Hash size={14} className="text-indigo-500" />
@@ -453,8 +523,12 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                                     )}
                                                 </td>
                                                 <td className="p-4 text-center">
-                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${loan.status === 'ACTIVE' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                                                        {loan.status === 'ACTIVE' ? 'PENDENTE' : 'DEVOLVIDO'}
+                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${loan.status === 'ACTIVE' ? 'bg-amber-100 text-amber-800' :
+                                                        loan.status === 'DELETED' ? 'bg-red-100 text-red-800' :
+                                                            'bg-green-100 text-green-800'
+                                                        }`}>
+                                                        {loan.status === 'ACTIVE' ? 'PENDENTE' :
+                                                            loan.status === 'DELETED' ? 'DELETADO' : 'DEVOLVIDO'}
                                                     </span>
                                                 </td>
                                             </tr>

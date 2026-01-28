@@ -18,6 +18,20 @@ import { Modal } from './components/ui/Modal';
 
 type ConfirmActionType = 'DELETE_ITEMS' | 'DELETE_REPORTS' | 'DELETE_PEOPLE' | 'DELETE_USERS' | 'FACTORY_RESET' | null;
 
+interface ModuleInfo {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  iconBg: string;
+  textColor: string;
+  hoverBorder: string;
+  bgLight: string;
+  permission: keyof NonNullable<User['permissions']>;
+  onSelect: () => void;
+}
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState(() => localStorage.getItem('activeTab') || 'achados');
   const [user, setUser] = useState<User | null>(null);
@@ -75,6 +89,10 @@ const App: React.FC = () => {
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+
+  // Drag and Drop state
+  const [moduleOrder, setModuleOrder] = useState<string[]>([]);
+  const [draggedModuleId, setDraggedModuleId] = useState<string | null>(null);
 
   // Persist Tab
   useEffect(() => {
@@ -172,6 +190,63 @@ const App: React.FC = () => {
     };
     initSession();
   }, [loadSystemConfig]);
+
+  // Handle module order
+  useEffect(() => {
+    if (user) {
+      const defaultOrder = ['achados', 'armarios', 'livros', 'nadaconsta', 'materiais', 'pessoas', 'usuarios'];
+      const savedOrder = user.moduleOrder || [];
+      // Filtrar apenas módulos que existem (evitar erros se o nome mudar)
+      const validSavedOrder = savedOrder.filter(id => defaultOrder.includes(id));
+      // Adicionar módulos que faltam
+      const missingModules = defaultOrder.filter(id => !validSavedOrder.includes(id));
+      setModuleOrder([...validSavedOrder, ...missingModules]);
+    }
+  }, [user]);
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedModuleId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    // Adicionar um delay pequeno para o ghost image ser criado antes de esconder o original
+    setTimeout(() => {
+      const target = e.target as HTMLElement;
+      target.style.opacity = '0.5';
+    }, 0);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    setDraggedModuleId(null);
+    const target = e.target as HTMLElement;
+    target.style.opacity = '1';
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    if (draggedModuleId === null || draggedModuleId === id) return;
+
+    const draggingIndex = moduleOrder.indexOf(draggedModuleId);
+    const hoverIndex = moduleOrder.indexOf(id);
+
+    const newOrder = [...moduleOrder];
+    newOrder.splice(draggingIndex, 1);
+    newOrder.splice(hoverIndex, 0, draggedModuleId);
+    setModuleOrder(newOrder);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    if (user && moduleOrder.length > 0) {
+      try {
+        await StorageService.updateModuleOrder(user.id, moduleOrder);
+        // Atualizar usuário na sessão
+        const updatedUser = { ...user, moduleOrder };
+        setUser(updatedUser);
+        StorageService.setSessionUser(updatedUser);
+      } catch (err) {
+        console.error("Erro ao salvar ordem dos módulos:", err);
+      }
+    }
+  };
 
   // 2. Data Fetching Effect
   useEffect(() => {
@@ -514,187 +589,159 @@ const App: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 px-4">
-            {/* Achados e Perdidos */}
-            {hasAccess('achados') && (
-              <button
-                onClick={() => {
-                  setCurrentSystem('achados');
-                  setActiveTab('achados');
-                  setShowModuleSelector(false);
-                }}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-ifrn-green transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-ifrn-green/10 transition-colors duration-500">
-                  <Package size={140} strokeWidth={1} />
-                </div>
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="bg-gradient-to-br from-ifrn-green to-emerald-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-green-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                    <Package size={32} />
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-ifrn-green transition-colors">Achados e Perdidos</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Gerencie itens encontrados, registre devoluções e mantenha o controle do acervo.</p>
-                  <div className="mt-auto flex items-center gap-2 text-ifrn-green font-bold text-sm tracking-wide bg-green-50 w-fit px-4 py-2 rounded-full group-hover:bg-ifrn-green group-hover:text-white transition-all">
-                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </button>
-            )}
+            {moduleOrder.map((moduleId) => {
+              const modules: Record<string, ModuleInfo> = {
+                achados: {
+                  id: 'achados',
+                  label: 'Achados e Perdidos',
+                  description: 'Gerencie itens encontrados, registre devoluções e mantenha o controle do acervo.',
+                  icon: <Package size={32} />,
+                  color: 'text-ifrn-green',
+                  iconBg: 'bg-gradient-to-br from-ifrn-green to-emerald-600',
+                  textColor: 'text-ifrn-green',
+                  hoverBorder: 'hover:border-ifrn-green',
+                  bgLight: 'bg-green-50',
+                  permission: 'achados',
+                  onSelect: () => {
+                    setCurrentSystem('achados');
+                    setActiveTab('achados');
+                    setShowModuleSelector(false);
+                  }
+                },
+                armarios: {
+                  id: 'armarios',
+                  label: 'Gestão de Armários',
+                  description: 'Controle de empréstimos, devoluções, manutenção e ocupação dos armários escolares.',
+                  icon: <Key size={32} />,
+                  color: 'text-emerald-700',
+                  iconBg: 'bg-gradient-to-br from-emerald-600 to-teal-700',
+                  textColor: 'text-emerald-700',
+                  hoverBorder: 'hover:border-emerald-600',
+                  bgLight: 'bg-emerald-50',
+                  permission: 'armarios',
+                  onSelect: () => {
+                    setCurrentSystem('armarios');
+                    setActiveTab('armarios');
+                    setShowModuleSelector(false);
+                  }
+                },
+                livros: {
+                  id: 'livros',
+                  label: 'Livros PNLD',
+                  description: 'Gerencie o catálogo didático, realize empréstimos e controle o estoque de livros.',
+                  icon: <BookOpen size={32} />,
+                  color: 'text-orange-600',
+                  iconBg: 'bg-gradient-to-br from-orange-500 to-amber-600',
+                  textColor: 'text-orange-600',
+                  hoverBorder: 'hover:border-orange-500',
+                  bgLight: 'bg-orange-50',
+                  permission: 'livros',
+                  onSelect: () => {
+                    setCurrentSystem('livros');
+                    setActiveTab('livros-catalogo');
+                    setShowModuleSelector(false);
+                  }
+                },
+                nadaconsta: {
+                  id: 'nadaconsta',
+                  label: 'Nada Consta',
+                  description: 'Emissão rápida de declarações e verificação de pendências de alunos e servidores.',
+                  icon: <FileCheck size={32} />,
+                  color: 'text-blue-700',
+                  iconBg: 'bg-gradient-to-br from-blue-600 to-indigo-600',
+                  textColor: 'text-blue-700',
+                  hoverBorder: 'hover:border-blue-600',
+                  bgLight: 'bg-blue-50',
+                  permission: 'nadaconsta',
+                  onSelect: () => {
+                    setCurrentSystem('nadaconsta');
+                    setActiveTab('nadaconsta');
+                    setShowModuleSelector(false);
+                  }
+                },
+                materiais: {
+                  id: 'materiais',
+                  label: 'Empréstimo de Material',
+                  description: 'Gerencie catálogo de materiais (HDMI, Grampeador) e registre empréstimos.',
+                  icon: <LayoutGrid size={32} />,
+                  color: 'text-indigo-700',
+                  iconBg: 'bg-gradient-to-br from-indigo-600 to-purple-600',
+                  textColor: 'text-indigo-700',
+                  hoverBorder: 'hover:border-indigo-600',
+                  bgLight: 'bg-indigo-50',
+                  permission: 'materiais',
+                  onSelect: () => {
+                    setCurrentSystem('materiais');
+                    setActiveTab('materiais');
+                    setShowModuleSelector(false);
+                  }
+                },
+                pessoas: {
+                  id: 'pessoas',
+                  label: 'Pessoas',
+                  description: 'Base de dados centralizada de alunos, servidores e colaboradores da instituição.',
+                  icon: <Users size={32} />,
+                  color: 'text-cyan-700',
+                  iconBg: 'bg-gradient-to-br from-cyan-600 to-blue-500',
+                  textColor: 'text-cyan-700',
+                  hoverBorder: 'hover:border-cyan-600',
+                  bgLight: 'bg-cyan-50',
+                  permission: 'pessoas',
+                  onSelect: () => {
+                    setCurrentSystem(null);
+                    setActiveTab('pessoas');
+                    setShowModuleSelector(false);
+                  }
+                },
+                usuarios: {
+                  id: 'usuarios',
+                  label: 'Usuários',
+                  description: 'Administração de contas de acesso, níveis de permissão e segurança do sistema.',
+                  icon: <ShieldCheck size={32} />,
+                  color: 'text-purple-700',
+                  iconBg: 'bg-gradient-to-br from-purple-600 to-violet-700',
+                  textColor: 'text-purple-700',
+                  hoverBorder: 'hover:border-purple-600',
+                  bgLight: 'bg-purple-50',
+                  permission: 'usuarios',
+                  onSelect: () => {
+                    setCurrentSystem(null);
+                    setActiveTab('usuarios');
+                    setShowModuleSelector(false);
+                  }
+                }
+              };
 
-            {/* Gestão de Armários */}
-            {hasAccess('armarios') && (
-              <button
-                onClick={() => {
-                  setCurrentSystem('armarios');
-                  setActiveTab('armarios');
-                  setShowModuleSelector(false);
-                }}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-emerald-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-emerald-600/10 transition-colors duration-500">
-                  <Key size={140} strokeWidth={1} />
-                </div>
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="bg-gradient-to-br from-emerald-600 to-teal-700 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-emerald-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                    <Key size={32} />
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-emerald-700 transition-colors">Gestão de Armários</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Controle de empréstimos, devoluções, manutenção e ocupação dos armários escolares.</p>
-                  <div className="mt-auto flex items-center gap-2 text-emerald-700 font-bold text-sm tracking-wide bg-emerald-50 w-fit px-4 py-2 rounded-full group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </button>
-            )}
+              const mod = modules[moduleId];
+              if (!mod || !hasAccess(mod.permission)) return null;
 
-            {/* Livros PNLD */}
-            {hasAccess('livros') && (
-              <button
-                onClick={() => {
-                  setCurrentSystem('livros');
-                  setActiveTab('livros-catalogo');
-                  setShowModuleSelector(false);
-                }}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-orange-500 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-orange-500/10 transition-colors duration-500">
-                  <BookOpen size={140} strokeWidth={1} />
-                </div>
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="bg-gradient-to-br from-orange-500 to-amber-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-orange-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                    <BookOpen size={32} />
+              return (
+                <button
+                  key={mod.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, mod.id)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, mod.id)}
+                  onDrop={handleDrop}
+                  onClick={mod.onSelect}
+                  className={`bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white ${mod.hoverBorder} transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02] cursor-grab active:cursor-grabbing`}
+                >
+                  <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:opacity-10 transition-colors duration-500 pointer-events-none">
+                    {React.cloneElement(mod.icon as React.ReactElement, { size: 140, strokeWidth: 1 })}
                   </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-orange-600 transition-colors">Livros PNLD</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Gerencie o catálogo didático, realize empréstimos e controle o estoque de livros.</p>
-                  <div className="mt-auto flex items-center gap-2 text-orange-600 font-bold text-sm tracking-wide bg-orange-50 w-fit px-4 py-2 rounded-full group-hover:bg-orange-600 group-hover:text-white transition-all">
-                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <div className="relative z-10 flex flex-col h-full pointer-events-none">
+                    <div className={`${mod.iconBg} w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-gray-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                      {mod.icon}
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-gray-900 transition-colors">{mod.label}</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">{mod.description}</p>
+                    <div className={`mt-auto flex items-center gap-2 ${mod.textColor} font-bold text-sm tracking-wide ${mod.bgLight} w-fit px-4 py-2 rounded-full group-hover:bg-gray-800 group-hover:text-white transition-all`}>
+                      ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </div>
-                </div>
-              </button>
-            )}
-
-            {/* Nada Consta */}
-            {hasAccess('nadaconsta') && (
-              <button
-                onClick={() => {
-                  setCurrentSystem('nadaconsta');
-                  setActiveTab('nadaconsta');
-                  setShowModuleSelector(false);
-                }}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-blue-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-blue-600/10 transition-colors duration-500">
-                  <FileCheck size={140} strokeWidth={1} />
-                </div>
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="bg-gradient-to-br from-blue-600 to-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                    <FileCheck size={32} />
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-blue-700 transition-colors">Nada Consta</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Emissão rápida de declarações e verificação de pendências de alunos e servidores.</p>
-                  <div className="mt-auto flex items-center gap-2 text-blue-700 font-bold text-sm tracking-wide bg-blue-50 w-fit px-4 py-2 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-all">
-                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </button>
-            )}
-
-            {/* Empréstimo de Material */}
-            {hasAccess('materiais') && (
-              <button
-                onClick={() => {
-                  setCurrentSystem('materiais');
-                  setActiveTab('materiais');
-                  setShowModuleSelector(false);
-                }}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-indigo-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-indigo-600/10 transition-colors duration-500">
-                  <LayoutGrid size={140} strokeWidth={1} />
-                </div>
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="bg-gradient-to-br from-indigo-600 to-purple-600 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-indigo-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                    <LayoutGrid size={32} />
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-indigo-700 transition-colors">Empréstimo de Material</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Gerencie catálogo de materiais (HDMI, Grampeador) e registre empréstimos para alunos e servidores.</p>
-                  <div className="mt-auto flex items-center gap-2 text-indigo-700 font-bold text-sm tracking-wide bg-indigo-50 w-fit px-4 py-2 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </button>
-            )}
-
-            {/* Cadastro de Pessoas */}
-            {hasAccess('pessoas') && (
-              <button
-                onClick={() => {
-                  setCurrentSystem(null);
-                  setActiveTab('pessoas');
-                  setShowModuleSelector(false);
-                }}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-cyan-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-cyan-600/10 transition-colors duration-500">
-                  <Users size={140} strokeWidth={1} />
-                </div>
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="bg-gradient-to-br from-cyan-600 to-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-cyan-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                    <Users size={32} />
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-cyan-700 transition-colors">Pessoas</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Base de dados centralizada de alunos, servidores e colaboradores da instituição.</p>
-                  <div className="mt-auto flex items-center gap-2 text-cyan-700 font-bold text-sm tracking-wide bg-cyan-50 w-fit px-4 py-2 rounded-full group-hover:bg-cyan-600 group-hover:text-white transition-all">
-                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </button>
-            )}
-
-            {/* Cadastro de Usuários */}
-            {hasAccess('usuarios') && (
-              <button
-                onClick={() => {
-                  setCurrentSystem(null);
-                  setActiveTab('usuarios');
-                  setShowModuleSelector(false);
-                }}
-                className="bg-white/80 backdrop-blur-sm p-8 rounded-[2rem] shadow-lg hover:shadow-2xl border-2 border-white hover:border-purple-600 transition-all duration-300 group text-left relative overflow-hidden transform hover:-translate-y-1 hover:scale-[1.02]"
-              >
-                <div className="absolute -right-4 -top-4 p-6 text-gray-100 group-hover:text-purple-600/10 transition-colors duration-500">
-                  <ShieldCheck size={140} strokeWidth={1} />
-                </div>
-                <div className="relative z-10 flex flex-col h-full">
-                  <div className="bg-gradient-to-br from-purple-600 to-violet-700 w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 shadow-lg shadow-purple-200 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                    <ShieldCheck size={32} />
-                  </div>
-                  <h3 className="text-2xl font-black text-gray-800 mb-3 group-hover:text-purple-700 transition-colors">Usuários</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-8">Administração de contas de acesso, níveis de permissão e segurança do sistema.</p>
-                  <div className="mt-auto flex items-center gap-2 text-purple-700 font-bold text-sm tracking-wide bg-purple-50 w-fit px-4 py-2 rounded-full group-hover:bg-purple-600 group-hover:text-white transition-all">
-                    ACESSAR SISTEMA <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </button>
-            )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-16 flex flex-col md:flex-row items-center justify-center gap-4 animate-fade-in-up">

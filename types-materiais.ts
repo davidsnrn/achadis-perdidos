@@ -16,6 +16,6 @@ export interface MaterialLoan {
     loanDate: string;
     returnDate?: string;
     observation?: string;
-    status: 'ACTIVE' | 'RETURNED';
+    status: 'ACTIVE' | 'RETURNED' | 'DELETED';
     loanedBy: string; // User who registered the loan
 }

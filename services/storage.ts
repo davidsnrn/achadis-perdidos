@@ -677,8 +677,22 @@ export const StorageService = {
     if (error) throw error;
   },
 
-  deleteMaterial: async (id: string) => {
-    await supabase.from('materials').delete().eq('id', id);
+  deleteMaterialsBulk: async (ids: string[]) => {
+    // 1. Marcar empréstimos ativos como DELETED
+    const { error: loanError } = await supabase
+      .from('material_loans')
+      .update({
+        status: 'DELETED',
+        returnDate: new Date().toISOString()
+      })
+      .in('materialId', ids)
+      .eq('status', 'ACTIVE');
+
+    if (loanError) console.error('Erro ao atualizar empréstimos:', loanError);
+
+    // 2. Deletar os materiais
+    const { error } = await supabase.from('materials').delete().in('id', ids);
+    if (error) throw error;
   },
 
   // Material Loans
