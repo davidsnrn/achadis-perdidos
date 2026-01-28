@@ -519,10 +519,10 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                                 <td className="p-4">
                                                     {loan.status === 'DELETED' ? (
                                                         <span className="text-red-700 font-bold text-[10px] bg-red-50 px-2 py-1 rounded-full border border-red-100 flex items-center gap-1 w-fit">
-                                                            DELETADO EM: {loan.returnDate ? new Date(loan.returnDate).toLocaleString('pt-BR') : 'DATA INDISP.'}
+                                                            {loan.returnDate ? new Date(loan.returnDate).toLocaleString('pt-BR') : 'DATA INDISP.'}
                                                         </span>
                                                     ) : loan.returnDate ? (
-                                                        <span className="text-green-700 font-medium">{new Date(loan.returnDate).toLocaleString('pt-BR')}</span>
+                                                        <span className="text-green-700 font-bold text-[11.5px]">{new Date(loan.returnDate).toLocaleString('pt-BR')}</span>
                                                     ) : (
                                                         <span className="text-amber-600 font-bold text-[10px] bg-amber-50 px-2 py-1 rounded-full border border-amber-100">EM ABERTO</span>
                                                     )}
