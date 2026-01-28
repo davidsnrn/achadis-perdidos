@@ -662,7 +662,7 @@ const App: React.FC = () => {
                 materiais: {
                   id: 'materiais',
                   label: 'Empréstimo de Material',
-                  description: 'Gerencie catálogo de materiais (HDMI, Grampeador) e registre empréstimos.',
+                  description: 'Gerencie catálogo de materiais e registre empréstimos.',
                   icon: <LayoutGrid size={32} />,
                   color: 'text-indigo-700',
                   iconBg: 'bg-gradient-to-br from-indigo-600 to-purple-600',
