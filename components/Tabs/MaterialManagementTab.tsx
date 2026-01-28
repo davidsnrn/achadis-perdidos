@@ -160,6 +160,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
             onUpdate();
             setShowLoanForm(false);
             setSelectedPerson(null);
+            setPersonSearch('');
             setSelectedMaterials([]);
             setObservation('');
             alert(`${newLoans.length} empréstimo(s) registrado(s) com sucesso!`);
@@ -516,7 +517,11 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                                     {new Date(loan.loanDate).toLocaleString('pt-BR')}
                                                 </td>
                                                 <td className="p-4">
-                                                    {loan.returnDate ? (
+                                                    {loan.status === 'DELETED' ? (
+                                                        <span className="text-red-700 font-bold text-[10px] bg-red-50 px-2 py-1 rounded-full border border-red-100 flex items-center gap-1 w-fit">
+                                                            DELETADO EM: {loan.returnDate ? new Date(loan.returnDate).toLocaleString('pt-BR') : 'DATA INDISP.'}
+                                                        </span>
+                                                    ) : loan.returnDate ? (
                                                         <span className="text-green-700 font-medium">{new Date(loan.returnDate).toLocaleString('pt-BR')}</span>
                                                     ) : (
                                                         <span className="text-amber-600 font-bold text-[10px] bg-amber-50 px-2 py-1 rounded-full border border-amber-100">EM ABERTO</span>
@@ -585,7 +590,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
             </Modal>
 
             {/* Loan Form Modal */}
-            <Modal isOpen={showLoanForm} onClose={() => { setShowLoanForm(false); setSelectedMaterials([]); }} title="Novo Empréstimo">
+            <Modal isOpen={showLoanForm} onClose={() => { setShowLoanForm(false); setSelectedMaterials([]); setSelectedPerson(null); setPersonSearch(''); }} title="Novo Empréstimo">
                 <form onSubmit={handleLoanSubmit} className="space-y-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pessoa</label>
@@ -675,7 +680,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                     </div>
 
                     <div className="flex gap-3 pt-4 border-t">
-                        <button type="button" onClick={() => { setShowLoanForm(false); setSelectedMaterials([]); }} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl">Cancelar</button>
+                        <button type="button" onClick={() => { setShowLoanForm(false); setSelectedMaterials([]); setSelectedPerson(null); setPersonSearch(''); }} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl">Cancelar</button>
                         <button type="submit" disabled={selectedMaterials.length === 0 || !selectedPerson} className="flex-[2] py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">Registrar Empréstimo</button>
                     </div>
                 </form>
@@ -807,8 +812,12 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                             </div>
                             <div className="p-4 bg-white border border-gray-100 rounded-xl space-y-1">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</p>
-                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${viewingLoan.status === 'ACTIVE' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                                    {viewingLoan.status === 'ACTIVE' ? 'PENDENTE' : 'DEVOLVIDO'}
+                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${viewingLoan.status === 'ACTIVE' ? 'bg-amber-100 text-amber-800' :
+                                    viewingLoan.status === 'DELETED' ? 'bg-red-100 text-red-800' :
+                                        'bg-green-100 text-green-800'
+                                    }`}>
+                                    {viewingLoan.status === 'ACTIVE' ? 'PENDENTE' :
+                                        viewingLoan.status === 'DELETED' ? 'DELETADO' : 'DEVOLVIDO'}
                                 </span>
                             </div>
                             <div className="p-4 bg-white border border-gray-100 rounded-xl space-y-1">
@@ -819,7 +828,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Datas</p>
                                 <p className="text-xs text-gray-600 font-medium whitespace-pre-line">
                                     Empréstimo: {new Date(viewingLoan.loanDate).toLocaleString('pt-BR')}
-                                    {viewingLoan.returnDate && `\nDevolução: ${new Date(viewingLoan.returnDate).toLocaleString('pt-BR')}`}
+                                    {viewingLoan.returnDate && `\n${viewingLoan.status === 'DELETED' ? 'Exclusão' : 'Devolução'}: ${new Date(viewingLoan.returnDate).toLocaleString('pt-BR')}`}
                                 </p>
                             </div>
                         </div>
