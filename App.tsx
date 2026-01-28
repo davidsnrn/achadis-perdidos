@@ -1001,7 +1001,7 @@ const App: React.FC = () => {
               {activeTab === 'armarios' && <ArmariosTab user={user} people={people} lockers={lockers} onUpdate={refreshData} />}
               {activeTab === 'livros-catalogo' && <BooksTab books={books} bookLoans={bookLoans} onUpdate={refreshData} user={user} />}
               {activeTab === 'livros-emprestimos' && <BookLoansTab loans={bookLoans} books={books} people={people} onUpdate={refreshData} user={user} />}
-              {activeTab === 'nadaconsta' && <NadaConstaTab people={people} lockers={lockers} bookLoans={bookLoans} />}
+              {activeTab === 'nadaconsta' && <NadaConstaTab people={people} lockers={lockers} bookLoans={bookLoans} materialLoans={materialLoans} />}
               {activeTab === 'materiais' && <MaterialManagementTab materials={materials} loans={materialLoans} people={people} user={user} onUpdate={refreshData} />}
               {activeTab === 'usuarios' && <UsersTab users={users} currentUser={user} onUpdate={refreshData} people={people} />}
             </>

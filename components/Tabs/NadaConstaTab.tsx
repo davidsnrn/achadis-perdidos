@@ -1,18 +1,21 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Locker, LoanData } from '../../types-armarios';
 import { Person, BookLoan, BookLoanStatus } from '../../types';
-import { Search, ExternalLink, CheckCircle, AlertTriangle, User, BookOpen, Key, Info, History } from 'lucide-react';
+import { MaterialLoan } from '../../types-materiais';
+import { Search, ExternalLink, CheckCircle, AlertTriangle, User, BookOpen, Key, Info, History, Hash } from 'lucide-react';
 
 interface NadaConstaTabProps {
     people: Person[];
     lockers: Locker[];
     bookLoans: BookLoan[];
+    materialLoans: MaterialLoan[];
 }
 
 export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
     people,
     lockers,
     bookLoans,
+    materialLoans,
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,6 +74,7 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
     const getStudentPendencies = (registration: string) => {
         const activeLockerLoans: LoanData[] = [];
         const activeBookLoans: BookLoan[] = [];
+        const activeMaterialLoans: MaterialLoan[] = [];
 
         // Check Lockers
         lockers.forEach(locker => {
@@ -88,9 +92,16 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                     activeBookLoans.push(loan);
                 }
             });
+
+            // Check Materials
+            materialLoans.forEach(loan => {
+                if (loan.personMatricula === registration && loan.status === 'ACTIVE') {
+                    activeMaterialLoans.push(loan);
+                }
+            });
         }
 
-        return { activeLockerLoans, activeBookLoans };
+        return { activeLockerLoans, activeBookLoans, activeMaterialLoans };
     };
 
     return (
@@ -123,13 +134,13 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
 
             <div className="space-y-6">
                 {searchResults.map(student => {
-                    const { activeLockerLoans, activeBookLoans } = getStudentPendencies(student.registration);
+                    const { activeLockerLoans, activeBookLoans, activeMaterialLoans } = getStudentPendencies(student.registration);
 
                     const realActiveBookLoans = activeBookLoans.filter(loan =>
                         loan.books.some(b => b.status === 'Ativo' || !b.status)
                     );
 
-                    const hasPendency = activeLockerLoans.length > 0 || realActiveBookLoans.length > 0;
+                    const hasPendency = activeLockerLoans.length > 0 || realActiveBookLoans.length > 0 || activeMaterialLoans.length > 0;
 
                     return (
                         <div key={student.registration} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-lg overflow-hidden animate-slide-up ring-1 ring-slate-200/50 transition-all hover:shadow-xl hover:translate-y-[-2px]">
@@ -221,6 +232,32 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                         <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
                                             <BookOpen size={32} className="opacity-20 mb-2" />
                                             <p className="text-[10px] font-black uppercase tracking-widest">Sem pendências</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Materiais Section */}
+                                <div className="space-y-4 md:col-span-2">
+                                    <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
+                                        <Hash size={16} /> Situação de Materiais
+                                    </h4>
+                                    {activeMaterialLoans.length > 0 ? (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            {activeMaterialLoans.map(loan => (
+                                                <div key={loan.id} className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-xs font-black text-amber-700 uppercase">{loan.materialName}</p>
+                                                        <p className="text-[10px] font-mono text-amber-500 font-bold uppercase mt-0.5">#{loan.materialCode}</p>
+                                                        <p className="text-[9px] text-amber-400 font-bold uppercase mt-1">Desde: {new Date(loan.loanDate).toLocaleDateString('pt-BR')}</p>
+                                                    </div>
+                                                    <div className="bg-amber-200 text-amber-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Pendente</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
+                                            <Hash size={32} className="opacity-20 mb-2" />
+                                            <p className="text-xs font-black uppercase tracking-widest">Nenhum material pendente</p>
                                         </div>
                                     )}
                                 </div>

@@ -38,6 +38,7 @@ export interface User {
     materiais?: boolean;
   };
   logs?: string[];
+  moduleOrder?: string[];
 }
 
 export interface Person {

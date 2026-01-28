@@ -110,7 +110,8 @@ export const StorageService = {
         level: user.level,
         permissions: user.permissions,
         password: finalPassword,
-        logs: updatedLogs
+        logs: updatedLogs,
+        moduleOrder: user.moduleOrder || []
       }).eq('id', user.id);
 
       if (error) throw error;
@@ -126,11 +127,20 @@ export const StorageService = {
         password: hashedPassword,
         level: user.level,
         permissions: user.permissions,
+        moduleOrder: user.moduleOrder || [],
         logs: [logMessage]
       });
 
       if (error) throw error;
     }
+  },
+
+  updateModuleOrder: async (userId: string, order: string[]) => {
+    const { error } = await supabase
+      .from('users')
+      .update({ moduleOrder: order })
+      .eq('id', userId);
+    if (error) throw error;
   },
 
   deleteUser: async (id: string) => {
