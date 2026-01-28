@@ -678,7 +678,7 @@ export const StorageService = {
   },
 
   deleteMaterialsBulk: async (ids: string[]) => {
-    // 1. Marcar empréstimos ativos como DELETED
+    // 1. Marcar empréstimos como DELETED
     const { data: updatedLoans, error: loanError } = await supabase
       .from('material_loans')
       .update({
@@ -688,8 +688,14 @@ export const StorageService = {
       .in('materialId', ids)
       .select();
 
-    if (loanError) console.error('Erro ao atualizar empréstimos:', loanError);
-    if (updatedLoans) console.log(`${updatedLoans.length} registros de empréstimo marcados como DELETADOS.`);
+    if (loanError) {
+      console.error('Erro ao atualizar empréstimos:', loanError);
+      throw new Error(`Erro ao atualizar empréstimos: ${loanError.message}`);
+    }
+
+    if (updatedLoans) {
+      console.log(`${updatedLoans.length} registros de empréstimo marcados como DELETADOS.`);
+    }
 
     // 2. Deletar os materiais
     const { error } = await supabase.from('materials').delete().in('id', ids);
@@ -758,11 +764,6 @@ export const StorageService = {
       .update({ status: 'RETURNED', returnDate: new Date().toISOString() })
       .eq('id', loanId);
 
-    if (error) throw error;
-  },
-
-  deleteMaterialLoan: async (loanId: string) => {
-    const { error } = await supabase.from('material_loans').delete().eq('id', loanId);
     if (error) throw error;
   },
 
