@@ -81,7 +81,8 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
             const matchesSearch =
                 item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (item.activeLoan?.personName || '').toLowerCase().includes(searchTerm.toLowerCase());
+                (item.activeLoan?.personName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (item.activeLoan?.personMatricula || '').toLowerCase().includes(searchTerm.toLowerCase());
 
             if (!matchesSearch) return false;
 
@@ -180,7 +181,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
         if (loan.status === 'RETURNED') return;
 
         try {
-            await StorageService.returnMaterialLoan(loan.id);
+            await StorageService.returnMaterialLoan(loan.id, `${user.name} (${user.matricula})`);
             onUpdate();
             setViewingLoan(null);
             alert('Material devolvido com sucesso!');
@@ -499,7 +500,9 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                             const matchesText = !search ||
                                                 loan.materialName.toLowerCase().includes(search) ||
                                                 loan.personName.toLowerCase().includes(search) ||
+                                                loan.personMatricula.toLowerCase().includes(search) ||
                                                 loan.loanedBy.toLowerCase().includes(search) ||
+                                                (loan.returnedBy || '').toLowerCase().includes(search) ||
                                                 `#${loan.materialCode}`.includes(search) ||
                                                 loan.materialCode.includes(search);
 
@@ -741,13 +744,10 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                             <p className="font-bold text-gray-800">{viewingItem.activeLoan.personName}</p>
                                             <p className="text-[10px] text-gray-500">{viewingItem.activeLoan.personMatricula}</p>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500">Desde</p>
-                                            <p className="font-bold text-gray-800">{new Date(viewingItem.activeLoan.loanDate).toLocaleString('pt-BR')}</p>
-                                        </div>
                                         <div className="col-span-2">
-                                            <p className="text-xs text-gray-500">Realizado por</p>
-                                            <p className="text-sm text-gray-700">{viewingItem.activeLoan.loanedBy}</p>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Registrou o empréstimo</p>
+                                            <p className="text-sm text-gray-700 font-medium">{viewingItem.activeLoan.loanedBy}</p>
+                                            <p className="text-xs text-gray-500">{new Date(viewingItem.activeLoan.loanDate).toLocaleString('pt-BR')}</p>
                                         </div>
                                         {viewingItem.activeLoan.observation && (
                                             <div className="col-span-2 pt-2 border-t">
@@ -828,16 +828,19 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                 </span>
                             </div>
                             <div className="p-4 bg-white border border-gray-100 rounded-xl space-y-1">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Operador</p>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Registrou o empréstimo</p>
                                 <p className="text-sm text-gray-700 font-medium">{viewingLoan.loanedBy}</p>
+                                <p className="text-xs text-gray-500">{new Date(viewingLoan.loanDate).toLocaleString('pt-BR')}</p>
                             </div>
-                            <div className="p-4 bg-white border border-gray-100 rounded-xl space-y-1">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Datas</p>
-                                <p className="text-xs text-gray-600 font-medium whitespace-pre-line">
-                                    Empréstimo: {new Date(viewingLoan.loanDate).toLocaleString('pt-BR')}
-                                    {viewingLoan.returnDate && `\n${viewingLoan.status === 'DELETED' ? 'Exclusão' : 'Devolução'}: ${new Date(viewingLoan.returnDate).toLocaleString('pt-BR')}`}
-                                </p>
-                            </div>
+                            {viewingLoan.returnedBy && (
+                                <div className="p-4 bg-white border border-gray-100 rounded-xl space-y-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                        {viewingLoan.status === 'DELETED' ? 'Registrou a exclusão' : 'Registrou a devolução'}
+                                    </p>
+                                    <p className="text-sm text-gray-700 font-medium">{viewingLoan.returnedBy}</p>
+                                    <p className="text-xs text-gray-500">{new Date(viewingLoan.returnDate!).toLocaleString('pt-BR')}</p>
+                                </div>
+                            )}
                         </div>
 
                         {viewingLoan.observation && (

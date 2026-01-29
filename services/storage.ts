@@ -734,7 +734,8 @@ export const StorageService = {
       returnDate: d.returnDate,
       observation: d.observation,
       status: d.status,
-      loanedBy: d.loanedBy
+      loanedBy: d.loanedBy,
+      returnedBy: d.returnedBy
     }));
   },
 
@@ -751,17 +752,22 @@ export const StorageService = {
       returnDate: loan.returnDate,
       observation: loan.observation,
       status: loan.status,
-      loanedBy: loan.loanedBy
+      loanedBy: loan.loanedBy,
+      returnedBy: loan.returnedBy
     };
     const { error } = await supabase.from('material_loans').upsert(payload);
     if (error) throw error;
   },
 
-  returnMaterialLoan: async (loanId: string) => {
-    // Update loan status only (no quantity tracking)
+  returnMaterialLoan: async (loanId: string, operatorName: string) => {
+    // Update loan status and return operator
     const { error } = await supabase
       .from('material_loans')
-      .update({ status: 'RETURNED', returnDate: new Date().toISOString() })
+      .update({
+        status: 'RETURNED',
+        returnDate: new Date().toISOString(),
+        returnedBy: operatorName
+      })
       .eq('id', loanId);
 
     if (error) throw error;
