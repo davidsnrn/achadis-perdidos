@@ -562,7 +562,20 @@ const App: React.FC = () => {
 
             <div className="text-center">
               <p className="text-xs text-gray-400 mt-8">
-                &copy; {new Date().getFullYear()} IFRN - Campus Nova Cruz. <br /> Todos os direitos reservados.
+
+                &copy; {new Date().getFullYear()} IFRN
+                {systemCampus ? (
+                  <>
+                    {" - Campus "}
+                    <span style={{ textTransform: 'capitalize' }}>
+                      {systemCampus.toLowerCase()}
+                    </span>.
+                  </>
+                ) : null}
+                <br /> Todos os direitos reservados.
+
+
+                {/*&copy; {new Date().getFullYear()} IFRN - Campus {systemCampus}. <br /> Todos os direitos reservados.*/}
               </p>
             </div>
           </div>

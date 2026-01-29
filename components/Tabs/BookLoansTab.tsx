@@ -21,7 +21,7 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
     const [search, setSearch] = useState('');
 
     // New Loan Form State
-    const [selectedPersonId, setSelectedPersonId] = useState('');
+    const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
     const [selectedBooks, setSelectedBooks] = useState<{ id: string, title: string, code?: string, series?: string, status?: 'Ativo' | 'Devolvido' }[]>([]);
     const [personSearch, setPersonSearch] = useState('');
     const [bookSearch, setBookSearch] = useState('');
@@ -46,12 +46,12 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
 
     const handleCreateLoan = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedPersonId || selectedBooks.length === 0) {
+        if (!selectedPerson || selectedBooks.length === 0) {
             alert('Selecione uma pessoa e pelo menos um livro.');
             return;
         }
 
-        const person = people.find(p => p.id === selectedPersonId);
+        const person = selectedPerson;
         if (!person) return;
 
         setIsLoading(true);
@@ -114,7 +114,7 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
 
             onUpdate();
             setShowLoanModal(false);
-            setSelectedPersonId('');
+            setSelectedPerson(null);
             setSelectedBooks([]);
             setPersonSearch('');
             setBookSearch('');
@@ -183,18 +183,18 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
 
     const filteredLoans = enrichedLoans.filter(l => {
         if (!search.trim()) return true;
-        const searchTerms = normalizeText(search).split(/\s+/).filter(t => t.length > 0);
+        const searchTerms = normalizeText(search).split(/\s+/).filter((t: string) => t.length > 0);
         const loanText = normalizeText(`${l.personName} ${l.personMatricula || ''} ${l.books.map(b => `${b.title} ${b.code || ''}`).join(' ')}`);
-        return searchTerms.every(term => loanText.includes(term));
+        return searchTerms.every((term: string) => loanText.includes(term));
     });
 
     const activeLoans = filteredLoans.filter(l => l.status === BookLoanStatus.ACTIVE);
     const historicalLoans = filteredLoans.filter(l => l.status === BookLoanStatus.RETURNED);
     const filteredPeople = people.filter(p => {
         if (!personSearch.trim()) return true;
-        const searchTerms = normalizeText(personSearch).split(/\s+/).filter(t => t.length > 0);
+        const searchTerms = normalizeText(personSearch).split(/\s+/).filter((t: string) => t.length > 0);
         const personText = normalizeText(`${p.name} ${p.matricula}`);
-        return searchTerms.every(term => personText.includes(term));
+        return searchTerms.every((term: string) => personText.includes(term));
     }).slice(0, 5);
 
     const filteredBooks = books.filter(b => {
@@ -323,37 +323,50 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
 
             <Modal
                 isOpen={showLoanModal}
-                onClose={() => { setShowLoanModal(false); setSelectedPersonId(''); setSelectedBooks([]); }}
+                onClose={() => { setShowLoanModal(false); setSelectedPerson(null); setSelectedBooks([]); }}
                 title="Novo Empréstimo de Livros"
             >
                 <div className="space-y-6">
                     {/* Person Selection */}
                     <div>
                         <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">1. Selecionar Aluno/Pessoa</label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-                            <input
-                                type="text"
-                                placeholder="Buscar por nome ou matrícula..."
-                                className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
-                                value={personSearch}
-                                onChange={e => setPersonSearch(e.target.value)}
-                            />
-                        </div>
-                        {personSearch && (
-                            <div className="mt-2 space-y-1 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                {filteredPeople.map(p => (
-                                    <button
-                                        key={p.id}
-                                        onClick={() => { setSelectedPersonId(p.id); setPersonSearch(p.name); }}
-                                        className={`w-full text-left p-2 rounded text-sm transition-colors ${selectedPersonId === p.id ? 'bg-ifrn-green text-white' : 'hover:bg-gray-200 text-gray-700'}`}
-                                    >
-                                        <div className="font-bold">{p.name}</div>
-                                        <div className={`text-[10px] ${selectedPersonId === p.id ? 'text-green-100' : 'text-gray-400'}`}>{p.matricula} • {p.type}</div>
-                                    </button>
-                                ))}
-                                {filteredPeople.length === 0 && <div className="p-2 text-xs text-center text-gray-400">Nenhum resultado.</div>}
+                        {selectedPerson ? (
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-4">
+                                <div className="flex-1">
+                                    <p className="font-bold text-blue-900">{selectedPerson.name}</p>
+                                    <p className="text-[10px] text-blue-700 font-bold uppercase">{selectedPerson.matricula} • {selectedPerson.type}</p>
+                                </div>
+                                <button type="button" onClick={() => setSelectedPerson(null)} className="text-xs text-red-500 font-bold underline">Alterar</button>
                             </div>
+                        ) : (
+                            <>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por nome ou matrícula..."
+                                        className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-ifrn-green outline-none"
+                                        value={personSearch}
+                                        onChange={e => setPersonSearch(e.target.value)}
+                                    />
+                                </div>
+                                {personSearch && (
+                                    <div className="mt-2 space-y-1 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                        {filteredPeople.map(p => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() => { setSelectedPerson(p); setPersonSearch(''); }}
+                                                className="w-full text-left p-2 rounded text-sm hover:bg-gray-200 text-gray-700 transition-colors"
+                                            >
+                                                <div className="font-bold">{p.name}</div>
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase">{p.matricula} • {p.type}</div>
+                                            </button>
+                                        ))}
+                                        {filteredPeople.length === 0 && <div className="p-2 text-xs text-center text-gray-400">Nenhum resultado.</div>}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -415,14 +428,14 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                     <div className="pt-6 flex justify-end gap-3 border-t">
                         <button
                             type="button"
-                            onClick={() => { setShowLoanModal(false); setSelectedPersonId(''); setSelectedBooks([]); }}
+                            onClick={() => { setShowLoanModal(false); setSelectedPerson(null); setSelectedBooks([]); }}
                             className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleCreateLoan}
-                            disabled={isLoading || !selectedPersonId || selectedBooks.length === 0}
+                            disabled={isLoading || !selectedPerson || selectedBooks.length === 0}
                             className="px-6 py-2 bg-ifrn-green text-white rounded-lg hover:bg-ifrn-darkGreen font-bold flex items-center gap-2 disabled:opacity-50"
                         >
                             {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Finalizar Empréstimo'}

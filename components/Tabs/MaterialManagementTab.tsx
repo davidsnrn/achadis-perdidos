@@ -69,6 +69,13 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
         });
     }, [materials, loans]);
 
+    const normalizeText = (text: string) => {
+        return text
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+    };
+
     const filteredInventory = useMemo(() => {
         return inventory.filter(item => {
             const matchesSearch =
@@ -87,11 +94,11 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
 
     const filteredPeople = useMemo(() => {
         if (!personSearch.trim()) return [];
-        const term = personSearch.toLowerCase();
-        return people.filter(p =>
-            p.name.toLowerCase().includes(term) ||
-            p.matricula.toLowerCase().includes(term)
-        ).slice(0, 5);
+        const normalizedSearchTerms = normalizeText(personSearch).split(/\s+/).filter((t: string) => t.length > 0);
+        return people.filter(p => {
+            const personText = normalizeText(`${p.name} ${p.matricula}`);
+            return normalizedSearchTerms.every((term: string) => personText.includes(term));
+        }).slice(0, 5);
     }, [people, personSearch]);
 
     const generateCode = (): string => {
