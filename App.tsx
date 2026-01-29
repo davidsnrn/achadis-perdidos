@@ -575,7 +575,7 @@ const App: React.FC = () => {
                     </span>.
                   </>
                 ) : null}
-                <br /> Todos os direitos reservados.
+                <br /> <span className="italic">Desenvolvido por <span className="font-semibold text-gray-500">David Galdino</span></span>
 
 
                 {/*&copy; {new Date().getFullYear()} IFRN - Campus {systemCampus}. <br /> Todos os direitos reservados.*/}
