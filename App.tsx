@@ -485,9 +485,12 @@ const App: React.FC = () => {
             <div className="inline-block p-4 bg-white/10 backdrop-blur-md rounded-2xl mb-8 border border-white/20 shadow-xl">
               <IfrnLogo theme="light" className="scale-110" />
             </div>
-            <h1 className="text-6xl font-black mb-6 tracking-tighter leading-none">
-              SIAE <br />
-              <span className="text-green-300">IFRN</span>
+            <h1 className="mb-8 tracking-tighter leading-none flex flex-col">
+              <span className="text-7xl font-black text-white">SIAE</span>
+              <div className="flex flex-col mt-3">
+                <span className="text-3xl font-black text-green-200 uppercase tracking-tight">Instituto Federal</span>
+                <span className="text-3xl font-medium text-white">Rio Grande do Norte</span>
+              </div>
             </h1>
             <p className="text-xl text-green-100 font-medium leading-relaxed max-w-md border-l-4 border-green-400 pl-6">
               Sistema Integrado de Administração Escolar
