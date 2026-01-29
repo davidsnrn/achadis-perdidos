@@ -173,7 +173,7 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                 </div>
                             </div>
 
-                            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {/* Armários Section */}
                                 <div className="space-y-4">
                                     <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
@@ -190,7 +190,7 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
+                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 h-full min-h-[140px]">
                                             <Key size={32} className="opacity-20 mb-2" />
                                             <p className="text-[10px] font-black uppercase tracking-widest">Sem pendências</p>
                                         </div>
@@ -229,7 +229,7 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                             );
                                         })
                                     ) : (
-                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
+                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 h-full min-h-[140px]">
                                             <BookOpen size={32} className="opacity-20 mb-2" />
                                             <p className="text-[10px] font-black uppercase tracking-widest">Sem pendências</p>
                                         </div>
@@ -237,27 +237,35 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                 </div>
 
                                 {/* Materiais Section */}
-                                <div className="space-y-4 md:col-span-2">
+                                <div className="space-y-4">
                                     <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
                                         <Hash size={16} /> Situação de Materiais
                                     </h4>
                                     {activeMaterialLoans.length > 0 ? (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                            {activeMaterialLoans.map(loan => (
-                                                <div key={loan.id} className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between">
-                                                    <div>
-                                                        <p className="text-xs font-black text-amber-700 uppercase">{loan.materialName}</p>
-                                                        <p className="text-[10px] font-mono text-amber-500 font-bold uppercase mt-0.5">#{loan.materialCode}</p>
-                                                        <p className="text-[9px] text-amber-400 font-bold uppercase mt-1">Desde: {new Date(loan.loanDate).toLocaleDateString('pt-BR')}</p>
+                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <p className="text-xs font-black text-amber-700 uppercase">Pendente: {activeMaterialLoans.length} Item(ns)</p>
+                                                <div className="bg-amber-200 text-amber-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Pendente</div>
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                {activeMaterialLoans.map(loan => (
+                                                    <div key={loan.id} className="flex flex-col p-2 rounded-xl border border-amber-200 bg-white/90 text-amber-900 shadow-sm text-[10px]">
+                                                        <div className="flex items-center justify-between font-black uppercase tracking-tighter">
+                                                            <span>{loan.materialName}</span>
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 rotate-45" />
+                                                        </div>
+                                                        <div className="text-[9px] text-slate-400 mt-0.5 font-bold flex justify-between">
+                                                            <span>CÓD: <span className="text-slate-600 font-black">#{loan.materialCode}</span></span>
+                                                            <span className="text-amber-500 uppercase">{new Date(loan.loanDate).toLocaleDateString('pt-BR')}</span>
+                                                        </div>
                                                     </div>
-                                                    <div className="bg-amber-200 text-amber-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Pendente</div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
                                     ) : (
-                                        <div className="p-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
+                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 h-full min-h-[140px]">
                                             <Hash size={32} className="opacity-20 mb-2" />
-                                            <p className="text-xs font-black uppercase tracking-widest">Nenhum material pendente</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest">Sem pendências</p>
                                         </div>
                                     )}
                                 </div>

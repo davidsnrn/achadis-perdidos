@@ -80,7 +80,7 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                     history: [
                         ...(existingActiveLoan.history || []),
                         {
-                            action: `Novos livros adicionados: ${selectedBooks.map(b => b.title).join(', ')}`,
+                            action: `Novos livros adicionados: ${selectedBooks.map(b => `${b.title} (#${b.code || 'S/C'})`).join(', ')}`,
                             user: user.name,
                             timestamp: now
                         }
@@ -102,7 +102,7 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                     status: BookLoanStatus.ACTIVE,
                     observation,
                     history: [{
-                        action: `Empréstimo inicial: ${selectedBooks.map(b => b.title).join(', ')}`,
+                        action: `Empréstimo inicial: ${selectedBooks.map(b => `${b.title} (#${b.code || 'S/C'})`).join(', ')}`,
                         user: user.name,
                         timestamp: now
                     }]
@@ -140,7 +140,7 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
             });
 
             const allReturned = updatedBooks.every(b => b.status === 'Devolvido');
-            const returnedTitles = loan.books.filter(b => bookIds.includes(b.id)).map(b => b.title).join(', ');
+            const returnedTitles = loan.books.filter(b => bookIds.includes(b.id)).map(b => `${b.title} (#${b.code || 'S/C'})`).join(', ');
 
             const updatedLoan: BookLoan = {
                 ...loan,
@@ -406,8 +406,8 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                             <div className="mt-4 flex flex-wrap gap-2">
                                 {selectedBooks.map(b => (
                                     <span key={b.id} className="flex items-center gap-1 px-3 py-1 bg-ifrn-green/10 text-ifrn-darkGreen text-xs font-bold rounded-full border border-ifrn-green/20">
-                                        {b.title}
-                                        <button onClick={() => handleRemoveBook(b.id)} className="hover:text-red-500"><X size={14} /></button>
+                                        {b.title} <span className="opacity-60 font-medium">({b.code || 'S/C'})</span>
+                                        <button onClick={() => handleRemoveBook(b.id)} className="ml-1 hover:text-red-500 transition-colors"><X size={14} /></button>
                                     </span>
                                 ))}
                             </div>
@@ -471,7 +471,9 @@ export const BookLoansTab: React.FC<Props> = ({ loans, books, people, onUpdate, 
                                     <div className="flex items-center gap-3">
                                         <BookIcon size={18} className={book.status === 'Devolvido' ? 'text-gray-400' : 'text-ifrn-green'} />
                                         <div>
-                                            <p className={`text-sm font-bold ${book.status === 'Devolvido' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{book.title}</p>
+                                            <p className={`text-sm font-bold ${book.status === 'Devolvido' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                                {book.title} <span className="text-[10px] opacity-60 font-semibold uppercase">({book.code || 'S/C'})</span>
+                                            </p>
                                             {book.status === 'Devolvido' && (
                                                 <p className="text-[10px] text-green-600 font-bold uppercase">Já devolvido em {new Date(book.returnDate!).toLocaleDateString('pt-BR')}</p>
                                             )}
