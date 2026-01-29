@@ -46,7 +46,7 @@ const App: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [desktopDeleteOpen, setDesktopDeleteOpen] = useState(false);
 
-  // System Config State (Inicia com cache para evitar "SIADES" no refresh)
+  // System Config State (Inicia com cache para evitar "SIAE" no refresh)
   const [systemSector, setSystemSector] = useState(() => {
     const cached = localStorage.getItem('sga_system_config');
     return cached ? JSON.parse(cached).sector : '';
@@ -486,11 +486,11 @@ const App: React.FC = () => {
               <IfrnLogo theme="light" className="scale-110" />
             </div>
             <h1 className="text-6xl font-black mb-6 tracking-tighter leading-none">
-              SIADES <br />
-              <span className="text-green-300">INTEGRADO</span>
+              SIAE <br />
+              <span className="text-green-300">IFRN</span>
             </h1>
             <p className="text-xl text-green-100 font-medium leading-relaxed max-w-md border-l-4 border-green-400 pl-6">
-              Sistema de Administração Escolar para gestão unificada.
+              Sistema Integrado de Administração Escolar
             </p>
           </div>
         </div>
