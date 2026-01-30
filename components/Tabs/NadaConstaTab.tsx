@@ -185,7 +185,7 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                                 <div key={loan.id} className="p-6 bg-red-50 border border-red-200 rounded-[2rem] flex items-center justify-between shadow-sm border-l-8 border-l-red-500">
                                                     <div>
                                                         <p className="text-xs font-black text-red-600 uppercase tracking-tight">Armário #{loan.lockerNumber}</p>
-                                                        <p className="text-[10px] text-red-400 font-bold uppercase mt-1.5 flex items-center gap-1.5">Retirado em: {loan.loanDate}</p>
+                                                        <p className="text-[10px] text-red-400 font-bold uppercase mt-1.5 flex items-center gap-1.5"><History size={10} />Retirado em: {loan.loanDate}</p>
                                                     </div>
                                                     <div className="bg-red-500 text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase shadow-sm shadow-red-100">Ocupado</div>
                                                 </div>
