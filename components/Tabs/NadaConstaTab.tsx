@@ -105,7 +105,7 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
     };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-10">
+        <div className="max-w-5xl mx-auto space-y-8 animate-fade-in pb-24">
             <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-slate-100 ring-1 ring-slate-200/50">
                 <div className="flex items-center gap-4 mb-6">
                     <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-100">
@@ -173,101 +173,111 @@ export const NadaConstaTab: React.FC<NadaConstaTabProps> = ({
                                 </div>
                             </div>
 
-                            <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <div className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-12">
                                 {/* Armários Section */}
-                                <div className="space-y-4">
-                                    <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
-                                        <Key size={16} /> Situação de Armários
+                                <div>
+                                    <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+                                        <Key size={14} /> Situação de Armários
                                     </h4>
-                                    {activeLockerLoans.length > 0 ? (
-                                        activeLockerLoans.map(loan => (
-                                            <div key={loan.id} className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-xs font-black text-red-600 uppercase">Armário #{loan.lockerNumber}</p>
-                                                    <p className="text-[10px] text-red-400 font-bold uppercase mt-0.5">Retirado em: {loan.loanDate}</p>
+                                    <div className="space-y-4">
+                                        {activeLockerLoans.length > 0 ? (
+                                            activeLockerLoans.map(loan => (
+                                                <div key={loan.id} className="p-6 bg-red-50 border border-red-200 rounded-[2rem] flex items-center justify-between shadow-sm border-l-8 border-l-red-500">
+                                                    <div>
+                                                        <p className="text-xs font-black text-red-600 uppercase tracking-tight">Armário #{loan.lockerNumber}</p>
+                                                        <p className="text-[10px] text-red-400 font-bold uppercase mt-1.5 flex items-center gap-1.5">Retirado em: {loan.loanDate}</p>
+                                                    </div>
+                                                    <div className="bg-red-500 text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase shadow-sm shadow-red-100">Ocupado</div>
                                                 </div>
-                                                <div className="bg-red-200 text-red-700 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Ocupado</div>
+                                            ))
+                                        ) : (
+                                            <div className="p-8 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 transition-colors hover:bg-slate-100/50">
+                                                <Key size={32} className="opacity-20 mb-3" />
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sem pendências</p>
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 h-full min-h-[140px]">
-                                            <Key size={32} className="opacity-20 mb-2" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Sem pendências</p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Livros Section */}
-                                <div className="space-y-4">
-                                    <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
-                                        <BookOpen size={16} /> Situação de Livros (PNLD)
+                                <div>
+                                    <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+                                        <BookOpen size={14} /> Situação de Livros (PNLD)
                                     </h4>
-                                    {realActiveBookLoans.length > 0 ? (
-                                        realActiveBookLoans.map(loan => {
-                                            const pendingBooks = loan.books.filter(b => b.status === 'Ativo' || !b.status);
-                                            return (
-                                                <div key={loan.id} className="p-4 bg-orange-50 border border-orange-200 rounded-2xl">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <p className="text-xs font-black text-orange-700 uppercase">Pendente: {pendingBooks.length} de {loan.books.length} Livro(s)</p>
-                                                        <div className="bg-orange-200 text-orange-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Pendente</div>
-                                                    </div>
-                                                    <div className="flex flex-col gap-1.5">
-                                                        {loan.books.map(b => (
-                                                            <div key={b.id} className={`flex flex-col p-2 rounded-xl border text-[10px] ${b.status === 'Devolvido' ? 'bg-green-50 text-green-600 border-green-100 opacity-50' : 'bg-white/90 border-orange-200 text-orange-900 shadow-sm'}`}>
-                                                                <div className="flex items-center justify-between font-black uppercase tracking-tighter">
-                                                                    <span>{b.title}</span>
-                                                                    {b.status === 'Devolvido' && <CheckCircle size={12} />}
+                                    <div className="space-y-4">
+                                        {realActiveBookLoans.length > 0 ? (
+                                            realActiveBookLoans.map(loan => {
+                                                const pendingBooks = loan.books.filter(b => b.status === 'Ativo' || !b.status);
+                                                return (
+                                                    <div key={loan.id} className="p-6 bg-orange-50 border border-orange-200 rounded-[2rem] shadow-sm border-l-8 border-l-orange-500">
+                                                        <div className="flex justify-between items-start mb-5">
+                                                            <p className="text-xs font-black text-orange-700 uppercase tracking-tight">Pendente: {pendingBooks.length} de {loan.books.length} Livro(s)</p>
+                                                            <div className="bg-orange-500 text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase shadow-sm shadow-orange-100">Pendente</div>
+                                                        </div>
+                                                        <div className="flex flex-col gap-3">
+                                                            {loan.books.map(b => (
+                                                                <div key={b.id} className={`flex flex-col p-4 rounded-2xl border text-[10px] ${b.status === 'Devolvido' ? 'bg-green-50 text-green-600 border-green-100 opacity-50' : 'bg-white/90 border-orange-100 text-orange-900 shadow-sm'}`}>
+                                                                    <div className="flex items-center justify-between font-black uppercase tracking-tighter">
+                                                                        <span>{b.title}</span>
+                                                                        {b.status === 'Devolvido' && <CheckCircle size={12} />}
+                                                                    </div>
+                                                                    <div className="text-[9px] text-slate-400 mt-1.5 font-bold">
+                                                                        CÓD: <span className="text-slate-600 font-black">{b.code || '---'}</span> • SÉRIE: <span className="text-slate-600 font-black">{b.series || '---'}</span>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="text-[9px] text-slate-400 mt-0.5 font-bold">
-                                                                    CÓD: <span className="text-slate-600 font-black">{b.code || '---'}</span> • SÉRIE: <span className="text-slate-600 font-black">{b.series || '---'}</span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                                                            ))}
+                                                        </div>
+                                                        <p className="text-[9px] text-orange-400 font-bold uppercase mt-5 flex items-center gap-1.5">
+                                                            <History size={10} /> Iniciado em: {new Date(loan.loanDate).toLocaleDateString('pt-BR')}
+                                                        </p>
                                                     </div>
-                                                    <p className="text-[9px] text-orange-400 font-bold uppercase mt-2">Iniciado em: {new Date(loan.loanDate).toLocaleDateString('pt-BR')}</p>
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 h-full min-h-[140px]">
-                                            <BookOpen size={32} className="opacity-20 mb-2" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Sem pendências</p>
-                                        </div>
-                                    )}
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="p-8 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 transition-colors hover:bg-slate-100/50">
+                                                <BookOpen size={32} className="opacity-20 mb-3" />
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sem pendências</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Materiais Section */}
-                                <div className="space-y-4">
-                                    <h4 className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
-                                        <Hash size={16} /> Situação de Materiais
+                                <div>
+                                    <h4 className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+                                        <Hash size={14} /> Situação de Materiais
                                     </h4>
-                                    {activeMaterialLoans.length > 0 ? (
-                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <p className="text-xs font-black text-amber-700 uppercase">Pendente: {activeMaterialLoans.length} Item(ns)</p>
-                                                <div className="bg-amber-200 text-amber-800 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Pendente</div>
-                                            </div>
-                                            <div className="flex flex-col gap-1.5">
-                                                {activeMaterialLoans.map(loan => (
-                                                    <div key={loan.id} className="flex flex-col p-2 rounded-xl border border-amber-200 bg-white/90 text-amber-900 shadow-sm text-[10px]">
-                                                        <div className="flex items-center justify-between font-black uppercase tracking-tighter">
-                                                            <span>{loan.materialName}</span>
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 rotate-45" />
+                                    <div className="space-y-4">
+                                        {activeMaterialLoans.length > 0 ? (
+                                            <div className="p-6 bg-amber-50 border border-amber-200 rounded-[2rem] shadow-sm border-l-8 border-l-amber-500">
+                                                <div className="flex justify-between items-start mb-5">
+                                                    <p className="text-xs font-black text-amber-700 uppercase tracking-tight">Pendente: {activeMaterialLoans.length} Item(ns)</p>
+                                                    <div className="bg-amber-500 text-white px-3 py-1.5 rounded-xl text-[9px] font-black uppercase shadow-sm shadow-amber-100">Pendente</div>
+                                                </div>
+                                                <div className="flex flex-col gap-3">
+                                                    {activeMaterialLoans.map(loan => (
+                                                        <div key={loan.id} className="flex flex-col p-4 rounded-2xl border border-amber-100 bg-white/90 text-amber-900 shadow-sm text-[10px]">
+                                                            <div className="flex items-center justify-between font-black uppercase tracking-tighter">
+                                                                <span>{loan.materialName}</span>
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 rotate-45" />
+                                                            </div>
+                                                            <div className="text-[9px] text-slate-400 mt-1.5 font-bold flex justify-between items-center">
+                                                                <span>CÓD: <span className="text-slate-600 font-black">#{loan.materialCode}</span></span>
+                                                                <span className="text-amber-500 uppercase flex items-center gap-1 font-black">
+                                                                    <History size={10} /> {new Date(loan.loanDate).toLocaleDateString('pt-BR')}
+                                                                </span>
+                                                            </div>
                                                         </div>
-                                                        <div className="text-[9px] text-slate-400 mt-0.5 font-bold flex justify-between">
-                                                            <span>CÓD: <span className="text-slate-600 font-black">#{loan.materialCode}</span></span>
-                                                            <span className="text-amber-500 uppercase">{new Date(loan.loanDate).toLocaleDateString('pt-BR')}</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 h-full min-h-[140px]">
-                                            <Hash size={32} className="opacity-20 mb-2" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Sem pendências</p>
-                                        </div>
-                                    )}
+                                        ) : (
+                                            <div className="p-8 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300 transition-colors hover:bg-slate-100/50">
+                                                <Hash size={32} className="opacity-20 mb-3" />
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em]">Sem pendências</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
