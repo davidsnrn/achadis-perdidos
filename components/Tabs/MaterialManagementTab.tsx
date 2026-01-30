@@ -31,6 +31,8 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
     const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
     const [personSearch, setPersonSearch] = useState('');
     const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
+    const [materialSearch, setMaterialSearch] = useState('');
+    const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
     const [observation, setObservation] = useState('');
     const [viewingItem, setViewingItem] = useState<(Material & { status: 'LOANED' | 'AVAILABLE'; activeLoan: MaterialLoan | null }) | null>(null);
 
@@ -102,6 +104,21 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
         }).slice(0, 5);
     }, [people, personSearch]);
 
+    const filteredMaterialsForLoan = useMemo(() => {
+        const normalizedSearchTerms = normalizeText(materialSearch).split(/\s+/).filter((t: string) => t.length > 0);
+
+        return inventory.filter(item => {
+            if (item.status !== 'AVAILABLE') return false;
+            // Ocultar se já estiver selecionado
+            if (selectedMaterials.some(sm => sm.id === item.id)) return false;
+
+            if (normalizedSearchTerms.length === 0) return true;
+
+            const materialText = normalizeText(`${item.name} ${item.code}`);
+            return normalizedSearchTerms.every((term: string) => materialText.includes(term));
+        }).slice(0, 10);
+    }, [inventory, materialSearch, selectedMaterials]);
+
     const generateCode = (): string => {
         const existingCodes = materials.map(m => m.code);
         let num = 1;
@@ -170,6 +187,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
             setSelectedPerson(null);
             setPersonSearch('');
             setSelectedMaterials([]);
+            setMaterialSearch('');
             setObservation('');
             alert(`${newLoans.length} empréstimo(s) registrado(s) com sucesso!`);
         } catch (error) {
@@ -600,7 +618,14 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
             </Modal>
 
             {/* Loan Form Modal */}
-            <Modal isOpen={showLoanForm} onClose={() => { setShowLoanForm(false); setSelectedMaterials([]); setSelectedPerson(null); setPersonSearch(''); }} title="Novo Empréstimo">
+            <Modal isOpen={showLoanForm} onClose={() => {
+                setShowLoanForm(false);
+                setSelectedMaterials([]);
+                setSelectedPerson(null);
+                setPersonSearch('');
+                setMaterialSearch('');
+                setShowMaterialDropdown(false);
+            }} title="Novo Empréstimo">
                 <form onSubmit={handleLoanSubmit} className="space-y-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pessoa</label>
@@ -635,25 +660,56 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                         )}
                     </div>
 
-                    <div>
+                    <div className="relative">
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Materiais Disponíveis</label>
-                        <select
-                            value=""
-                            onChange={e => {
-                                const mat = materials.find(m => m.id === e.target.value);
-                                if (mat && !selectedMaterials.find(sm => sm.id === mat.id)) {
-                                    setSelectedMaterials([...selectedMaterials, mat]);
-                                }
-                            }}
-                            className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-indigo-500"
-                        >
-                            <option value="">Adicionar material...</option>
-                            {materials.map(m => {
-                                const isActive = loans.some(l => l.materialId === m.id && l.status === 'ACTIVE');
-                                const isSelected = selectedMaterials.some(sm => sm.id === m.id);
-                                return <option key={m.id} value={m.id} disabled={isActive || isSelected}>{m.code} - {m.name} {isActive ? '(Em uso)' : isSelected ? '(Selecionado)' : ''}</option>;
-                            })}
-                        </select>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className="w-full border-2 border-gray-100 rounded-xl p-3 pl-10 text-sm outline-none focus:border-indigo-500"
+                                placeholder="Pesquisar material disponível..."
+                                value={materialSearch}
+                                onChange={e => {
+                                    setMaterialSearch(e.target.value);
+                                    setShowMaterialDropdown(true);
+                                }}
+                                onFocus={() => setShowMaterialDropdown(true)}
+                            />
+                            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+
+                            {showMaterialDropdown && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-10"
+                                        onClick={() => setShowMaterialDropdown(false)}
+                                    />
+                                    <div className="absolute z-20 w-full mt-2 bg-white border rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y">
+                                        {filteredMaterialsForLoan.length > 0 ? (
+                                            filteredMaterialsForLoan.map(m => (
+                                                <div
+                                                    key={m.id}
+                                                    onClick={() => {
+                                                        setSelectedMaterials([...selectedMaterials, m]);
+                                                        setMaterialSearch('');
+                                                        setShowMaterialDropdown(false);
+                                                    }}
+                                                    className="p-4 hover:bg-indigo-50 cursor-pointer flex justify-between items-center"
+                                                >
+                                                    <div>
+                                                        <div className="font-bold text-gray-800">{m.name}</div>
+                                                        <div className="text-xs text-indigo-600 font-mono">#{m.code}</div>
+                                                    </div>
+                                                    <Plus size={16} className="text-indigo-400" />
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 text-center text-gray-400 text-xs italic">
+                                                Nenhum material disponível encontrado
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {selectedMaterials.length > 0 && (
@@ -661,7 +717,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                             <label className="block text-xs font-bold text-gray-500 uppercase">Materiais Selecionados ({selectedMaterials.length})</label>
                             <div className="grid grid-cols-1 gap-2">
                                 {selectedMaterials.map(mat => (
-                                    <div key={mat.id} className="flex justify-between items-center bg-gray-50 p-2 px-3 rounded-lg border border-gray-100">
+                                    <div key={mat.id} className="flex justify-between items-center bg-gray-50 p-2 px-3 rounded-lg border border-gray-100 animate-fadeIn">
                                         <div className="flex items-center gap-2">
                                             <span className="font-mono text-xs font-bold text-indigo-600">#{mat.code}</span>
                                             <span className="text-sm font-medium text-gray-700">{mat.name}</span>
@@ -669,7 +725,7 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                                         <button
                                             type="button"
                                             onClick={() => setSelectedMaterials(selectedMaterials.filter(sm => sm.id !== mat.id))}
-                                            className="text-red-500 hover:text-red-700"
+                                            className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
                                         >
                                             <Trash2 size={16} />
                                         </button>
@@ -685,13 +741,21 @@ export const MaterialManagementTab: React.FC<Props> = ({ materials = [], loans =
                             value={observation}
                             onChange={e => setObservation(e.target.value)}
                             className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm outline-none focus:border-indigo-500"
+                            placeholder="Alguma observação importante sobre este empréstimo?"
                             rows={3}
                         />
                     </div>
 
                     <div className="flex gap-3 pt-4 border-t">
-                        <button type="button" onClick={() => { setShowLoanForm(false); setSelectedMaterials([]); setSelectedPerson(null); setPersonSearch(''); }} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl">Cancelar</button>
-                        <button type="submit" disabled={selectedMaterials.length === 0 || !selectedPerson} className="flex-[2] py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">Registrar Empréstimo</button>
+                        <button type="button" onClick={() => {
+                            setShowLoanForm(false);
+                            setSelectedMaterials([]);
+                            setSelectedPerson(null);
+                            setPersonSearch('');
+                            setMaterialSearch('');
+                            setShowMaterialDropdown(false);
+                        }} className="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
+                        <button type="submit" disabled={selectedMaterials.length === 0 || !selectedPerson} className="flex-[2] py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all active:scale-[0.98]">Registrar Empréstimo</button>
                     </div>
                 </form>
             </Modal>
