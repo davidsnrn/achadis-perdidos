@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StorageService } from './services/storage';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { StorageService, supabase } from './services/storage';
 import { User, UserLevel, FoundItem, LostReport, Person, Book, BookLoan } from './types';
 import { Locker } from './types-armarios';
 import { Material, MaterialLoan } from './types-materiais';
@@ -110,6 +110,17 @@ const App: React.FC = () => {
     return user.level !== UserLevel.STANDARD;
   };
 
+  // Refresh Data Individual Helpers
+  const refreshItems = useCallback(async () => { try { setItems(await StorageService.getItems()); } catch (e) { console.error("Erro items:", e); } }, []);
+  const refreshReports = useCallback(async () => { try { setReports(await StorageService.getReports()); } catch (e) { console.error("Erro reports:", e); } }, []);
+  const refreshPeople = useCallback(async () => { try { setPeople(await StorageService.getPeople()); } catch (e) { console.error("Erro people:", e); } }, []);
+  const refreshUsers = useCallback(async () => { try { setUsers(await StorageService.getUsers()); } catch (e) { console.error("Erro users:", e); } }, []);
+  const refreshBooks = useCallback(async () => { try { setBooks(await StorageService.getBooks()); } catch (e) { console.error("Erro books:", e); } }, []);
+  const refreshBookLoans = useCallback(async () => { try { setBookLoans(await StorageService.getBookLoans()); } catch (e) { console.error("Erro book_loans:", e); } }, []);
+  const refreshLockers = useCallback(async () => { try { setLockers(await StorageService.getLockers()); } catch (e) { console.error("Erro lockers:", e); } }, []);
+  const refreshMaterials = useCallback(async () => { try { setMaterials(await StorageService.getMaterials()); } catch (e) { console.error("Erro materials:", e); } }, []);
+  const refreshMaterialLoans = useCallback(async () => { try { setMaterialLoans(await StorageService.getMaterialLoans()); } catch (e) { console.error("Erro mat_loans:", e); } }, []);
+
   // Refresh Data Helper (Async) with Timeout
   const refreshData = useCallback(async () => {
     setLoading(true);
@@ -148,6 +159,48 @@ const App: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  // Debounced notification handler to avoid too many refreshes in bulk operations
+  const debounceTimers = useRef<Record<string, number>>({});
+  const handleRealtimeChange = useCallback((table: string) => {
+    if (debounceTimers.current[table]) {
+      window.clearTimeout(debounceTimers.current[table]);
+    }
+
+    debounceTimers.current[table] = window.setTimeout(() => {
+      switch (table) {
+        case 'items': refreshItems(); break;
+        case 'reports': refreshReports(); break;
+        case 'people': refreshPeople(); break;
+        case 'users': refreshUsers(); break;
+        case 'books': refreshBooks(); break;
+        case 'book_loans': refreshBookLoans(); break;
+        case 'lockers': refreshLockers(); break;
+        case 'materials': refreshMaterials(); break;
+        case 'material_loans': refreshMaterialLoans(); break;
+      }
+    }, 1000); // 1 second debounce
+  }, [refreshItems, refreshReports, refreshPeople, refreshUsers, refreshBooks, refreshBookLoans, refreshLockers, refreshMaterials, refreshMaterialLoans]);
+
+  // 0. Setup Realtime Listeners
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase.channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public' },
+        (payload) => {
+          handleRealtimeChange(payload.table);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      Object.values(debounceTimers.current).forEach(t => window.clearTimeout(t));
+    };
+  }, [user, handleRealtimeChange]);
 
   const loadSystemConfig = useCallback(async () => {
     const config = await StorageService.getConfig();
